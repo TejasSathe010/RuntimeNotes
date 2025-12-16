@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform, LayoutGroup } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
 
 export default function Navbar() {
@@ -8,28 +8,31 @@ export default function Navbar() {
   const { pathname } = useLocation();
   const { scrollY } = useScroll();
 
-  // Smooth shrink and fade as user scrolls
-  const bgLight = useTransform(scrollY, [0, 150], ["rgba(255,255,255,0.85)", "rgba(255,255,255,0.6)"]);
-  const bgDark = useTransform(scrollY, [0, 150], ["rgba(23,23,23,0.5)", "rgba(23,23,23,0.3)"]);
-  const height = useTransform(scrollY, [0, 100], ["4.5rem", "3.6rem"]);
+  // Smooth scroll fade + height shrink
+  const bgLight = useTransform(scrollY, [0, 150], ["rgba(255,255,255,0.9)", "rgba(255,255,255,0.7)"]);
+  const bgDark = useTransform(scrollY, [0, 150], ["rgba(13,17,23,0.9)", "rgba(13,17,23,0.6)"]);
+  const height = useTransform(scrollY, [0, 120], ["4.5rem", "3.6rem"]);
 
   const links = [
     { name: "Home", path: "/" },
     { name: "About", path: "/about" },
   ];
 
-  useEffect(() => setOpen(false), [pathname]); // close menu on route change
+  // Close dropdown when route changes
+  useEffect(() => setOpen(false), [pathname]);
 
   return (
     <motion.header
-      style={{
-        height,
-        background: bgLight,
-      }}
-      className="sticky top-0 z-50 backdrop-blur-xl border-b border-neutral-200/60 
-                 dark:border-neutral-800/60 dark:[background:var(--tw-bg-opacity)_rgba(23,23,23,var(--tw-bg-opacity))]
-                 transition-all duration-300"
+      style={{ height }}
+      className="sticky top-0 z-50 transition-all duration-300 border-b border-neutral-200/60 dark:border-neutral-800/60"
     >
+      <motion.div
+        style={{
+          background: bgLight,
+        }}
+        className="absolute inset-0 -z-10 backdrop-blur-xl dark:[background:var(--tw-bg-opacity)_rgba(13,17,23,var(--tw-bg-opacity))]"
+      />
+
       <nav className="max-w-7xl mx-auto px-6 md:px-10 flex justify-between items-center h-full">
         {/* ---------- Brand ---------- */}
         <Link
@@ -43,44 +46,47 @@ export default function Navbar() {
         </Link>
 
         {/* ---------- Desktop Links ---------- */}
-        <div className="hidden md:flex items-center gap-8 text-[0.95rem] font-medium relative">
-          {links.map((link) => {
-            const isActive = pathname === link.path;
-            return (
-              <Link
-                key={link.name}
-                to={link.path}
-                className={`group relative pb-1 transition-colors duration-200 ${
-                  isActive
-                    ? "text-primary"
-                    : "text-neutral-700 dark:text-neutral-300 hover:text-primary"
-                }`}
-              >
-                {link.name}
-                <motion.span
-                  layoutId={isActive ? "active-link" : undefined}
-                  className={`absolute bottom-0 left-0 h-[2px] rounded-full bg-primary 
-                              transition-all duration-300 ${
-                                isActive ? "w-full" : "w-0 group-hover:w-full"
-                              }`}
-                />
-              </Link>
-            );
-          })}
+        <LayoutGroup>
+          <div className="hidden md:flex items-center gap-8 text-[0.95rem] font-medium relative">
+            {links.map((link) => {
+              const isActive = pathname === link.path;
+              return (
+                <div key={link.name} className="relative">
+                  <Link
+                    to={link.path}
+                    className={`transition-colors duration-200 pb-1 ${
+                      isActive
+                        ? "text-primary"
+                        : "text-neutral-700 dark:text-neutral-300 hover:text-primary"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                  {isActive && (
+                    <motion.span
+                      layoutId="active-link-underline"
+                      className="absolute bottom-0 left-0 h-[2px] w-full rounded-full bg-primary"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
-          {/* GitHub link */}
-          <a
-            href="https://github.com/TejasSathe010"
-            target="_blank"
-            rel="noreferrer"
-            className="group relative text-neutral-700 dark:text-neutral-300 hover:text-primary transition-colors"
-          >
-            GitHub
-            <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-primary rounded-full transition-all duration-300 group-hover:w-full" />
-          </a>
-        </div>
+            {/* GitHub link */}
+            <a
+              href="https://github.com/TejasSathe010"
+              target="_blank"
+              rel="noreferrer"
+              className="group relative text-neutral-700 dark:text-neutral-300 hover:text-primary transition-colors pb-1"
+            >
+              GitHub
+              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-primary rounded-full transition-all duration-300 group-hover:w-full" />
+            </a>
+          </div>
+        </LayoutGroup>
 
-        {/* ---------- Mobile Toggle ---------- */}
+        {/* ---------- Mobile Menu Toggle ---------- */}
         <button
           onClick={() => setOpen(!open)}
           className="md:hidden p-2 text-neutral-600 dark:text-neutral-200 hover:text-primary transition 

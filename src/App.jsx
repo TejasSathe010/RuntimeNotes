@@ -54,7 +54,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* ---------- Footer ---------- */}
-      <footer className="max-w-5xl mx-auto border-t border-neutral-200/60 dark:border-neutral-800/60 mt-24 pt-10 pb-16 text-center text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
+      <footer className="max-w-5xl mx-auto border-t border-neutral-200/60 dark:border-neutral-800/60 mt-5 pt-10 pb-16 text-center text-sm text-neutral-500 dark:text-neutral-400 leading-relaxed">
         <p>
           © {new Date().getFullYear()} <span className="text-primary font-semibold">Tejas Sathe</span>
         </p>

@@ -4,6 +4,17 @@ html {
   scroll-behavior: smooth;
 }
 
+canvas {
+  image-rendering: optimizeSpeed;
+  transition: opacity 1s ease;
+}
+
+html.dark canvas {
+  mix-blend-mode: lighten;
+    filter: blur(30px) brightness(1.2) contrast(1.1);
+}
+
+
 @keyframes gradientShift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -44,4 +55,27 @@ html {
   height: 1px;
   background: linear-gradient(to right, transparent, #ccc, transparent);
   margin: 3em 0;
+}
+
+/* Hide scrollbar across all browsers while keeping scroll functional */
+
+/* Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Firefox */
+html {
+  scrollbar-width: none; /* hides scrollbar */
+}
+
+/* Internet Explorer (legacy) */
+body {
+  -ms-overflow-style: none;
+}
+
+/* Make sure smooth scroll still feels native */
+html {
+  scroll-behavior: smooth;
 }

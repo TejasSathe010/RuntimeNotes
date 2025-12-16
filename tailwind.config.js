@@ -13,45 +13,88 @@ export default defineConfig({
         mono: ["Fira Code", "monospace"],
       },
       colors: {
-        primary: { DEFAULT: "#1a73e8" }, // Google blue
+        primary: { DEFAULT: "#1a73e8" }, // Google Blue
         surface: { light: "#fafafa", dark: "#0d1117" },
+        accent: "#34A853",
       },
       typography: (theme) => ({
         DEFAULT: {
           css: {
             color: theme("colors.neutral.800"),
             fontFamily: theme("fontFamily.sans"),
-            fontSize: "1.05rem",
+            fontSize: "1.07rem",
             lineHeight: "1.85",
-            maxWidth: "75ch",
+            letterSpacing: "-0.01em",
+            maxWidth: "78ch",
             marginLeft: "auto",
             marginRight: "auto",
-            letterSpacing: "-0.01em",
 
-            /* Paragraphs */
+            /* ---------- Paragraphs ---------- */
             p: {
-              marginTop: "1.4em",
-              marginBottom: "1.4em",
+              marginTop: "1.3em",
+              marginBottom: "1.3em",
               textAlign: "justify",
-              textIndent: "1.75em",
               lineHeight: "1.9",
+              textIndent: "1.75em",
             },
             "p:first-of-type": {
               textIndent: "0",
-              fontSize: "1.12rem",
-              lineHeight: "2",
+              fontSize: "1.14rem",
               color: theme("colors.neutral.900"),
             },
 
-            /* Lists */
+            /* ---------- Headings ---------- */
+            h1: {
+              fontFamily: theme("fontFamily.display"),
+              fontWeight: "800",
+              fontSize: "2.5rem",
+              marginTop: "0",
+              marginBottom: "1.2em",
+              lineHeight: "1.3",
+              color: theme("colors.neutral.900"),
+              letterSpacing: "-0.02em",
+            },
+            h2: {
+              position: "relative",
+              fontFamily: theme("fontFamily.display"),
+              fontWeight: "700",
+              fontSize: "1.75rem",
+              marginTop: "3em",
+              marginBottom: "1em",
+              paddingBottom: "0.4em",
+              borderBottom: "1px solid rgba(0,0,0,0.06)",
+              scrollMarginTop: "7rem",
+            },
+            "h2::before": {
+              content: "'# '",
+              color: theme("colors.primary.DEFAULT"),
+              fontWeight: "600",
+              marginRight: "0.4em",
+            },
+            h3: {
+              fontWeight: "600",
+              fontSize: "1.25rem",
+              marginTop: "2em",
+              marginBottom: "0.75em",
+              color: theme("colors.neutral.800"),
+              scrollMarginTop: "6.5rem",
+            },
+            "h3::before": {
+              content: "'› '",
+              color: theme("colors.primary.DEFAULT"),
+              fontWeight: "600",
+              marginRight: "0.3em",
+            },
+
+            /* ---------- Lists ---------- */
             "ul, ol": {
-              marginTop: "1.3em",
-              marginBottom: "1.3em",
+              marginTop: "1.2em",
+              marginBottom: "1.2em",
               paddingLeft: "1.75em",
             },
             li: {
-              marginTop: "0.5em",
-              marginBottom: "0.5em",
+              marginTop: "0.4em",
+              marginBottom: "0.4em",
               lineHeight: "1.8",
               paddingLeft: "0.2em",
             },
@@ -59,54 +102,31 @@ export default defineConfig({
               color: theme("colors.primary.DEFAULT"),
             },
 
-            /* Headings */
-            h1: {
-              fontFamily: theme("fontFamily.display"),
-              fontWeight: "800",
-              fontSize: "2.25rem",
-              marginBottom: "1.2em",
-              lineHeight: "1.3",
-              color: theme("colors.neutral.900"),
-            },
-            h2: {
-              fontFamily: theme("fontFamily.display"),
-              fontWeight: "700",
-              marginTop: "3em",
-              marginBottom: "1em",
-              paddingBottom: "0.3em",
-              borderBottom: "1px solid rgba(0,0,0,0.08)",
-              lineHeight: "1.35",
-            },
-            h3: {
-              fontWeight: "600",
-              fontSize: "1.25rem",
-              marginTop: "2em",
-              marginBottom: "0.75em",
-            },
-
-            /* Blockquotes (clean, minimal) */
+            /* ---------- Blockquotes ---------- */
             blockquote: {
               marginTop: "2em",
               marginBottom: "2em",
-              padding: "1rem 1.5rem",
-              borderLeft: "4px solid #1a73e8",
+              padding: "1.2rem 1.6rem",
+              borderLeft: `4px solid ${theme("colors.primary.DEFAULT")}`,
               backgroundColor: "rgba(26,115,232,0.03)",
-              borderRadius: "0.5rem",
+              borderRadius: "0.75rem",
               fontStyle: "normal",
               fontWeight: "400",
               color: theme("colors.neutral.700"),
+              quotes: '"“" "”" "‘" "’"',
             },
+            "blockquote p:first-of-type::before": { content: "open-quote" },
+            "blockquote p:last-of-type::after": { content: "close-quote" },
 
-            /* Inline code */
+            /* ---------- Code ---------- */
             code: {
               backgroundColor: "rgba(26,115,232,0.08)",
               color: theme("colors.primary.DEFAULT"),
-              padding: "0.25rem 0.4rem",
+              padding: "0.25rem 0.45rem",
               borderRadius: "6px",
-              fontSize: "0.95em",
+              fontSize: "0.9em",
+              fontWeight: "500",
             },
-
-            /* Code blocks */
             pre: {
               backgroundColor: "#0d1117",
               color: "#f8fafc",
@@ -118,9 +138,10 @@ export default defineConfig({
               marginTop: "2em",
               marginBottom: "2em",
               fontSize: "0.95rem",
+              border: "1px solid rgba(255,255,255,0.05)",
             },
 
-            /* Links */
+            /* ---------- Links ---------- */
             a: {
               color: theme("colors.primary.DEFAULT"),
               fontWeight: "500",
@@ -128,20 +149,22 @@ export default defineConfig({
               borderBottom: "1px dashed rgba(26,115,232,0.4)",
               "&:hover": {
                 borderBottom: "1px solid rgba(26,115,232,0.8)",
+                color: theme("colors.primary.DEFAULT"),
               },
             },
 
-            /* Emphasis */
+            /* ---------- Emphasis ---------- */
             "em,strong,b": {
               color: theme("colors.neutral.900"),
               fontWeight: "600",
             },
 
-            /* Horizontal rule */
+            /* ---------- Horizontal rule ---------- */
             hr: {
               border: "none",
               height: "1px",
-              background: "linear-gradient(to right, transparent, #ccc, transparent)",
+              background:
+                "linear-gradient(to right, transparent, rgba(26,115,232,0.4), transparent)",
               margin: "3em 0",
             },
           },
@@ -150,7 +173,20 @@ export default defineConfig({
           css: {
             color: theme("colors.neutral.200"),
             "h1,h2,h3,h4": { color: theme("colors.white") },
-            code: { backgroundColor: "#1f2937", color: "#60a5fa" },
+            "h2::before, h3::before": { opacity: "0.6" },
+            a: {
+              color: "#60a5fa",
+              borderBottomColor: "rgba(96,165,250,0.5)",
+              "&:hover": { borderBottomColor: "rgba(96,165,250,0.9)" },
+            },
+            code: {
+              backgroundColor: "rgba(96,165,250,0.15)",
+              color: "#93c5fd",
+            },
+            pre: {
+              backgroundColor: "#111827",
+              borderColor: "#1f2937",
+            },
             blockquote: {
               backgroundColor: "rgba(26,115,232,0.05)",
               color: "#ddd",
@@ -159,6 +195,27 @@ export default defineConfig({
           },
         },
       }),
+      extend: {
+  keyframes: {
+    "pulse-slow": {
+      "0%, 100%": { opacity: "0.6", transform: "translateY(0px)" },
+      "50%": { opacity: "1", transform: "translateY(-10px)" },
+    },
+    "pulse-slower": {
+      "0%, 100%": { opacity: "0.5", transform: "translateY(0px)" },
+      "50%": { opacity: "1", transform: "translateY(10px)" },
+    },
+    "gradient-x": {
+      "0%, 100%": { backgroundPosition: "0% 50%" },
+      "50%": { backgroundPosition: "100% 50%" },
+    },
+  },
+  animation: {
+    "pulse-slow": "pulse-slow 8s ease-in-out infinite",
+    "pulse-slower": "pulse-slower 14s ease-in-out infinite",
+    "gradient-x": "gradient-x 8s ease infinite",
+  },
+}
     },
   },
   plugins: [typography],
