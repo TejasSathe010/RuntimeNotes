@@ -4,11 +4,6 @@ date: "2025-12-03"
 summary: "How a review comment about updated_at pushed me from CRUD thinking to database-enforced invariants, moving time, ownership, and integrity out of Node.js and into the schema where they belong."
 ---
 
-
-# Daily Tech Chronicles #02
-
-### When updated_at Stopped Being My Problem
-
 There is a specific line of SQL that made me feel embarrassingly junior:
 
 ```sql

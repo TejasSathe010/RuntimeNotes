@@ -1,5 +1,6 @@
+// src/pages/Post.jsx
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPostBySlug, getPosts } from "../utils/posts";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -12,49 +13,87 @@ import {
   useSpring,
   useTransform,
   AnimatePresence,
+  useReducedMotion,
 } from "framer-motion";
+import {
+  ChevronLeft,
+  Link2,
+  ArrowUpRight,
+  Share2,
+  Twitter,
+  Linkedin,
+  Clock,
+  Calendar,
+  Tag,
+  Sparkles,
+} from "lucide-react";
 
-/** Helper used both for TOC and heading IDs */
+/** ---------- Helpers ---------- */
 const slugifyHeading = (value) =>
   String(value)
     .toLowerCase()
     .replace(/[^\w]+/g, "-")
     .replace(/^-|-$/g, "");
 
-/**
- * Code block renderer for markdown
- * - Nice header bar (language + copy button)
- * - Good spacing and readable font size
- * - Keeps inline <code> simple and readable
- */
-// helper to extract plain text from react-markdown children
 function extractText(node) {
-  if (typeof node === "string") return node;
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
   if (Array.isArray(node)) return node.map(extractText).join("");
-  if (node && typeof node === "object" && "props" in node) {
-    return extractText(node.props.children);
-  }
+  if (typeof node === "object" && node.props) return extractText(node.props.children);
   return "";
 }
 
+function formatCategory(label) {
+  return (label || "Architecture")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function safeDate(d) {
+  const dt = new Date(d);
+  return Number.isNaN(dt.getTime()) ? new Date() : dt;
+}
+
+/** ---------- Extract “🔥 Takeaway” blocks from markdown ---------- */
+function extractTakeaways(markdown) {
+  const lines = String(markdown || "").split("\n");
+  const takeaways = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = (lines[i] || "").trim();
+    if (!/^🔥\s*takeaway\b/i.test(line)) continue;
+
+    const bullets = [];
+    for (let j = i + 1; j < lines.length; j++) {
+      const t = (lines[j] || "").trim();
+      if (!t) break;
+      if (/^#{1,6}\s+/.test(t)) break;
+
+      if (/^[-*•]\s+/.test(t)) bullets.push(t.replace(/^[-*•]\s+/, "").trim());
+      else if (bullets.length > 0) bullets[bullets.length - 1] += ` ${t}`;
+    }
+
+    bullets.forEach((b) => b && takeaways.push(b));
+  }
+
+  const seen = new Set();
+  return takeaways.filter((t) => (seen.has(t) ? false : (seen.add(t), true)));
+}
+
+/** ---------- Code block renderer (compact + crisp) ---------- */
 function CodeBlock({ inline, className, children, ...props }) {
   const match = /language-(\w+)/.exec(className || "");
   const language = match ? match[1].toUpperCase() : "CODE";
 
   const [copied, setCopied] = useState(false);
-
   const plainText = extractText(children);
 
-  // robust inline detection:
-  // - trust react-markdown's `inline` if present
-  // - otherwise: no language + no newline => treat as inline
   const isInline = inline ?? (!match && !plainText.includes("\n"));
-
   if (isInline) {
     return (
       <code
-        className="px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800
-                   text-[0.9em] font-mono"
+        className="px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800/80
+                   text-[0.92em] font-mono text-neutral-950 dark:text-neutral-50"
         {...props}
       >
         {children}
@@ -62,34 +101,35 @@ function CodeBlock({ inline, className, children, ...props }) {
     );
   }
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(plainText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1200);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(plainText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1100);
+    } catch {
+      // ignore
+    }
   };
 
   return (
-    <div className="mt-6 mb-8 rounded-xl overflow-hidden border border-neutral-200/70 dark:border-neutral-800/70 bg-[#0d1117] shadow-sm">
-      {/* Header bar */}
-      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-neutral-800 text-[0.7rem] text-neutral-400">
+    <div className="my-5 overflow-hidden rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-[#0d1117] shadow-sm">
+      <div className="flex items-center justify-between px-3.5 py-2 bg-[#161b22] border-b border-neutral-800 text-[0.72rem] text-neutral-400">
         <div className="flex gap-1.5 items-center">
-          <span className="w-3 h-3 rounded-full bg-red-500" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500" />
-          <span className="w-3 h-3 rounded-full bg-green-500" />
-          <span className="ml-3 uppercase tracking-wide text-neutral-300">
-            {language}
-          </span>
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500/90" />
+          <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/90" />
+          <span className="w-2.5 h-2.5 rounded-full bg-green-500/90" />
+          <span className="ml-3 uppercase tracking-[0.16em] text-neutral-300">{language}</span>
         </div>
         <button
           onClick={handleCopy}
-          className="px-2 py-1 rounded-md bg-neutral-800/70 hover:bg-neutral-700 text-neutral-100 transition-colors"
+          type="button"
+          className="px-2.5 py-1 rounded-md bg-neutral-800/70 hover:bg-neutral-700 text-neutral-100 transition-colors"
         >
-          {copied ? "Copied ✓" : "Copy"}
+          {copied ? "Copied" : "Copy"}
         </button>
       </div>
 
-      {/* Code body – IMPORTANT: render real children, not String(children) */}
-      <pre className="p-4 sm:p-5 text-[0.88rem] text-zinc-50 leading-[1.7] overflow-x-auto">
+      <pre className="p-3.5 sm:p-4 text-[0.84rem] sm:text-[0.9rem] text-zinc-50 leading-[1.65] overflow-x-auto">
         <code className={className} {...props}>
           {children}
         </code>
@@ -98,64 +138,59 @@ function CodeBlock({ inline, className, children, ...props }) {
   );
 }
 
-
-
-/**
- * Custom markdown renderers tuned for a “real world” blog feel:
- * - comfortable line length
- * - generous line height
- * - clear hierarchy
- * - soft colors
- */
+/** ---------- Markdown components (compact, Google-style editorial) ---------- */
 const markdownComponents = {
   h1: ({ children, ...props }) => {
-    const text = String(children);
-    const id = slugifyHeading(text);
+    const id = slugifyHeading(extractText(children));
     return (
       <h1
         id={id}
         {...props}
-        className="scroll-mt-32 mt-10 mb-6 text-[2rem] sm:text-[2.2rem] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50"
+        className="scroll-mt-28 mt-8 mb-3 text-[1.8rem] sm:text-[2.05rem] font-semibold tracking-tight
+                   text-neutral-950 dark:text-neutral-50"
       >
         {children}
       </h1>
     );
   },
-  h2: ({ children, ...props }) => {
-    const text = String(children);
-    const id = slugifyHeading(text);
 
+  h2: ({ children, ...props }) => {
+    const id = slugifyHeading(extractText(children));
     return (
       <h2
         id={id}
         {...props}
-        className="group scroll-mt-28 mt-12 mb-4 flex items-baseline gap-2 text-[1.4rem] sm:text-[1.5rem] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50"
+        className="group scroll-mt-28 mt-9 mb-2.5 flex items-baseline
+                   text-[1.28rem] sm:text-[1.45rem] font-semibold tracking-tight
+                   text-neutral-950 dark:text-neutral-50"
       >
-        <span className="inline-block w-1 h-6 rounded-full bg-primary/75 mr-1" />
-        <span>{children}</span>
+        {/* <span className="inline-flex h-5 w-1.5 rounded-full bg-primary/85" /> */}
+        <span className="min-w-0">{children}</span>
         <a
           href={`#${id}`}
-          className="ml-1 opacity-0 group-hover:opacity-100 text-neutral-400 dark:text-neutral-500 text-xs transition-opacity"
+          className="opacity-0 group-hover:opacity-100 text-neutral-400 dark:text-neutral-500 text-xs transition-opacity"
+          aria-label="Anchor link"
         >
           #
         </a>
       </h2>
     );
   },
-  h3: ({ children, ...props }) => {
-    const text = String(children);
-    const id = slugifyHeading(text);
 
+  h3: ({ children, ...props }) => {
+    const id = slugifyHeading(extractText(children));
     return (
       <h3
         id={id}
         {...props}
-        className="group scroll-mt-24 mt-8 mb-2 text-[1.1rem] sm:text-[1.15rem] font-semibold tracking-tight text-neutral-900 dark:text-neutral-50"
+        className="group scroll-mt-24 mt-6 mb-2 text-[1.02rem] sm:text-[1.12rem]
+                   font-semibold tracking-tight text-neutral-950 dark:text-neutral-50"
       >
         <span>{children}</span>
         <a
           href={`#${id}`}
-          className="ml-1 opacity-0 group-hover:opacity-100 text-neutral-400 dark:text-neutral-500 text-[0.7rem] transition-opacity"
+          className="ml-1 opacity-0 group-hover:opacity-100 text-neutral-400 dark:text-neutral-500 text-[0.72rem] transition-opacity"
+          aria-label="Anchor link"
         >
           #
         </a>
@@ -163,15 +198,31 @@ const markdownComponents = {
     );
   },
 
-  // Body text: slightly larger, relaxed, with a narrow “column” feel
-  p: ({ children, ...props }) => (
-    <p
-      {...props}
-      className="my-5 max-w-[70ch] text-[0.98rem] sm:text-[1.02rem] leading-[1.85] tracking-[0.01em] text-neutral-800 dark:text-neutral-100"
-    >
-      {children}
-    </p>
-  ),
+  p: ({ children, ...props }) => {
+    const text = extractText(children).trim();
+
+    // "🔥 Takeaway" label (compact)
+    if (/^🔥\s*takeaway\b/i.test(text)) {
+      return (
+        <div className="my-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 dark:bg-primary/15 px-2.5 py-1 text-[0.72rem] font-semibold text-primary">
+            <Sparkles className="h-4 w-4" />
+            Takeaway
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <p
+        {...props}
+        className="my-3.5 text-[0.95rem] sm:text-[1rem] leading-[1.72] tracking-[0.01em]
+                   text-neutral-800 dark:text-neutral-100"
+      >
+        {children}
+      </p>
+    );
+  },
 
   a: ({ children, href, ...props }) => {
     const isExternal = href && /^https?:\/\//.test(href);
@@ -181,119 +232,114 @@ const markdownComponents = {
         {...props}
         target={isExternal ? "_blank" : undefined}
         rel={isExternal ? "noreferrer" : undefined}
-        className="font-medium text-primary underline underline-offset-[3px] decoration-primary/30 hover:decoration-primary"
+        className="font-medium text-primary underline underline-offset-[3px]
+                   decoration-primary/30 hover:decoration-primary"
       >
         {children}
-        {isExternal && (
-          <span className="ml-1 text-[0.6rem] align-super">↗</span>
-        )}
+        {isExternal && <span className="ml-1 text-[0.62rem] align-super">↗</span>}
       </a>
     );
   },
 
   strong: ({ children, ...props }) => (
-    <strong
-      {...props}
-      className="font-semibold text-neutral-900 dark:text-neutral-50"
-    >
+    <strong {...props} className="font-semibold text-neutral-950 dark:text-neutral-50">
       {children}
     </strong>
   ),
-  em: ({ children, ...props }) => (
-    <em
-      {...props}
-      className="italic text-neutral-800 dark:text-neutral-200 not-italic:font-normal"
-    >
-      {children}
-    </em>
-  ),
 
-  // Softer, “documentation style” callout
   blockquote: ({ children, ...props }) => (
     <blockquote
       {...props}
-      className="mt-6 mb-8 max-w-[68ch] border-l-2 border-primary/60 bg-primary/5 dark:bg-neutral-900/70 px-5 py-4 rounded-r-xl text-[0.95rem] leading-[1.7] text-neutral-800 dark:text-neutral-50 space-y-2"
+      className="my-5 rounded-xl border border-neutral-200/70 dark:border-neutral-800/70
+                 bg-white/70 dark:bg-neutral-900/60 px-4 py-3 shadow-sm"
     >
-      {children}
+      <div className="border-l-2 border-primary/70 pl-3 text-[0.95rem] leading-[1.68] text-neutral-900 dark:text-neutral-50 space-y-2">
+        {children}
+      </div>
     </blockquote>
   ),
 
   ul: ({ children, ...props }) => (
     <ul
       {...props}
-      className="my-5 ml-1 pl-5 space-y-2 text-[0.98rem] sm:text-[1.02rem] leading-[1.75] text-neutral-800 dark:text-neutral-100 list-disc marker:text-neutral-400 dark:marker:text-neutral-500"
+      className="my-3.5 pl-5 space-y-1.5 text-[0.95rem] sm:text-[1rem] leading-[1.68]
+                 text-neutral-800 dark:text-neutral-100 list-disc marker:text-neutral-400 dark:marker:text-neutral-500"
     >
       {children}
     </ul>
   ),
+
   ol: ({ children, ...props }) => (
     <ol
       {...props}
-      className="my-5 ml-1 pl-5 space-y-2 text-[0.98rem] sm:text-[1.02rem] leading-[1.75] text-neutral-800 dark:text-neutral-100 list-decimal marker:text-neutral-400 dark:marker:text-neutral-500"
+      className="my-3.5 pl-5 space-y-1.5 text-[0.95rem] sm:text-[1rem] leading-[1.68]
+                 text-neutral-800 dark:text-neutral-100 list-decimal marker:text-neutral-400 dark:marker:text-neutral-500"
     >
       {children}
     </ol>
   ),
+
   li: ({ children, ...props }) => (
-    <li
-      {...props}
-      className="leading-[1.7] text-neutral-800 dark:text-neutral-100"
-    >
+    <li {...props} className="leading-[1.66]">
       {children}
     </li>
   ),
 
-  // Tables with zebra rows & subtle borders
   table: ({ children, ...props }) => (
-    <div className="my-7 w-full overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/70">
-      <table
-        {...props}
-        className="min-w-full text-sm text-left border-collapse"
-      >
+    <div className="my-6 w-full overflow-x-auto rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/70 dark:bg-neutral-900/60 shadow-sm">
+      <table {...props} className="min-w-full text-sm text-left border-collapse">
         {children}
       </table>
     </div>
   ),
+
   thead: ({ children, ...props }) => (
     <thead
       {...props}
-      className="bg-neutral-100/90 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100"
+      className="bg-neutral-100/80 dark:bg-neutral-900 text-neutral-900 dark:text-neutral-100"
     >
       {children}
     </thead>
   ),
+
   tr: ({ children, ...props }) => (
-    <tr
-      {...props}
-      className="even:bg-neutral-50/90 dark:even:bg-neutral-900/60"
-    >
+    <tr {...props} className="even:bg-neutral-50/70 dark:even:bg-neutral-900/40">
       {children}
     </tr>
   ),
+
   th: ({ children, ...props }) => (
     <th
       {...props}
-      className="border-b border-neutral-200 dark:border-neutral-800 px-3 py-2 font-semibold text-[0.85rem]"
+      className="border-b border-neutral-200/70 dark:border-neutral-800/70 px-3 py-2 font-semibold text-[0.85rem]"
     >
       {children}
     </th>
   ),
+
   td: ({ children, ...props }) => (
     <td
       {...props}
-      className="border-t border-neutral-200 dark:border-neutral-800 px-3 py-2 align-top text-[0.9rem]"
+      className="border-t border-neutral-200/70 dark:border-neutral-800/70 px-3 py-2 align-top text-[0.9rem]"
     >
       {children}
     </td>
   ),
 
-  img: ({ alt, ...props }) => (
-    <figure className="my-7">
-      <img
-        {...props}
-        alt={alt}
-        className="mx-auto max-h-[420px] rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm object-contain"
-      />
+  img: ({ alt, src, ...props }) => (
+    <figure className="my-6">
+      <div className="overflow-hidden rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-neutral-100 dark:bg-neutral-900 shadow-sm">
+        <a href={src} target="_blank" rel="noreferrer" className="block">
+          <img
+            {...props}
+            src={src}
+            alt={alt || ""}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-auto max-h-[560px] object-contain"
+          />
+        </a>
+      </div>
       {alt && (
         <figcaption className="mt-2 text-center text-xs text-neutral-500 dark:text-neutral-400">
           {alt}
@@ -305,7 +351,7 @@ const markdownComponents = {
   hr: (props) => (
     <hr
       {...props}
-      className="my-12 border-0 h-px bg-gradient-to-r from-transparent via-neutral-300/80 dark:via-neutral-700 to-transparent"
+      className="my-8 border-0 h-px bg-gradient-to-r from-transparent via-neutral-300/80 dark:via-neutral-700 to-transparent"
     />
   ),
 
@@ -314,59 +360,48 @@ const markdownComponents = {
 
 export default function Post() {
   const { slug } = useParams();
+  const reduceMotion = useReducedMotion();
 
   const [post, setPost] = useState(null);
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [headings, setHeadings] = useState([]);
   const [activeId, setActiveId] = useState("");
-
-  const { scrollYProgress } = useScroll();
-  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 20 });
-  const progressPercent = useTransform(scrollYProgress, (v) =>
-    Math.round(v * 100)
-  );
-  const scrollHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
-
+  const [copied, setCopied] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  // Toggle scroll-to-top button
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 140, damping: 26 });
+  const progressPercent = useTransform(scrollYProgress, (v) => Math.round(v * 100));
+  const scrollHeight = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
   useEffect(() => {
-    const unsubscribe = scrollYProgress.on("change", (v) => {
-      setShowScrollTop(v > 0.18);
-    });
+    const unsubscribe = scrollYProgress.on("change", (v) => setShowScrollTop(v > 0.2));
     return () => unsubscribe();
   }, [scrollYProgress]);
 
-  // ---------- Fetch Post + Headings + Related ----------
   useEffect(() => {
     (async () => {
       const current = await getPostBySlug(slug);
       if (!current) return;
+
       setPost(current);
 
-      // Extract H1/H2/H3 headings from markdown
-      const matches = Array.from(
-        current.content.matchAll(/^#{1,3}\s+(.*)$/gm)
-      );
+      const matches = Array.from((current.content || "").matchAll(/^#{1,3}\s+(.*)$/gm));
+      const parsed = matches
+        .map((m) => {
+          const raw = (m[1] || "").trim();
+          const level = m[0].startsWith("###") ? 3 : m[0].startsWith("##") ? 2 : 1;
+          const id = slugifyHeading(raw);
+          return { text: raw, level, id };
+        })
+        .filter((h) => h.level >= 2 && h.text);
 
-      const parsed = matches.map((m) => {
-        const raw = m[1].trim();
-        const level = m[0].startsWith("###")
-          ? 3
-          : m[0].startsWith("##")
-          ? 2
-          : 1;
-        const id = slugifyHeading(raw);
-        return { text: raw, level, id };
-      });
+      setHeadings(parsed);
 
-      // ignore H1 in TOC
-      setHeadings(parsed.filter((h) => h.level >= 2));
+      const normalize = (s) => (s ? s.toLowerCase().replace(/\s+/g, "-") : "");
+      const all = await getPosts();
 
-      const normalize = (s) =>
-        s ? s.toLowerCase().replace(/\s+/g, "-") : "";
-      const allPosts = await getPosts();
-      const related = allPosts
+      const related = (all || [])
         .filter(
           (p) =>
             p.slug !== slug &&
@@ -379,26 +414,22 @@ export default function Post() {
     })();
   }, [slug]);
 
-  // ---------- ScrollSpy on headings ----------
   useEffect(() => {
     if (!post?.content || headings.length === 0) return;
 
-    const elements = Array.from(
-      document.querySelectorAll("article h2[id], article h3[id]")
-    );
+    const elements = Array.from(document.querySelectorAll("article h2[id], article h3[id]"));
     if (elements.length === 0) return;
 
     const onScroll = () => {
-      const scrollTop = window.scrollY + 140; // account for sticky header
-      let currentId = elements[0].id;
+      const scrollTop = window.scrollY + 132;
+      let current = elements[0].id;
 
       for (let i = 0; i < elements.length; i++) {
         const el = elements[i];
-        if (el.offsetTop <= scrollTop) currentId = el.id;
+        if (el.offsetTop <= scrollTop) current = el.id;
         else break;
       }
-
-      setActiveId(currentId);
+      setActiveId(current);
     };
 
     onScroll();
@@ -406,113 +437,256 @@ export default function Post() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [post, headings]);
 
-  const handleTocClick = (id) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      setActiveId(id);
+  const readingTime = useMemo(() => {
+    const words = (post?.content || "").split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.ceil(words / 230));
+  }, [post?.content]);
+
+  const category = useMemo(() => formatCategory(post?.category), [post?.category]);
+
+  const takeaways = useMemo(() => extractTakeaways(post?.content), [post?.content]);
+
+  const hero = post?.cover || post?.image || post?.banner || post?.hero || null;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1100);
+    } catch {
+      // ignore
     }
+  };
+
+  const scrollToHeading = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const offset = 108;
+    const top = el.getBoundingClientRect().top + window.scrollY - offset;
+    window.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
+    setActiveId(id);
   };
 
   if (!post) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-neutral-500 dark:text-neutral-400 animate-pulse">
+      <div className="min-h-[70dvh] flex items-center justify-center text-neutral-500 dark:text-neutral-400 animate-pulse">
         Loading article…
       </div>
     );
   }
 
-  const readingTime = Math.ceil(post.content.split(/\s+/).length / 220);
+  const shareUrl = encodeURIComponent(window.location.href);
+  const shareTitle = encodeURIComponent(post.title || "Article");
+  const dateObj = safeDate(post.date);
 
   return (
-    <main className="min-h-screen bg-neutral-50 dark:bg-neutral-950 transition-colors duration-500">
-      {/* ---------- Reading progress bar at top ---------- */}
-      <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-primary origin-left z-40"
-        style={{ scaleX }}
-      />
+    <main className="min-h-[100dvh] bg-neutral-50 dark:bg-neutral-950 transition-colors duration-500">
+      {/* Progress bar */}
+      <motion.div className="fixed top-0 left-0 right-0 h-1 bg-primary origin-left z-[80]" style={{ scaleX }} />
 
-      {/* Mini scroll map (right side) */}
+      {/* Scroll map (xl+) */}
       <div className="fixed right-6 top-28 z-30 w-[2px] h-[70vh] bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden hidden xl:block">
         <motion.div
           style={{
             height: scrollHeight,
-            background:
-              "linear-gradient(to bottom, rgb(66,133,244), rgb(52,168,83))",
+            background: "linear-gradient(to bottom, rgb(66,133,244), rgb(52,168,83))",
           }}
         />
       </div>
 
-      {/* ---------- % Read Badge ---------- */}
+      {/* % read badge (smaller + quieter) */}
       <motion.div
-        className="fixed bottom-8 right-8 z-40 bg-neutral-900/85 dark:bg-white/10 backdrop-blur-md text-white dark:text-neutral-100 text-xs font-medium px-3.5 py-1.5 rounded-full shadow-lg border border-neutral-700/40"
+        className="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-[70]
+                   bg-neutral-900/80 dark:bg-white/10 backdrop-blur-md text-white dark:text-neutral-100
+                   text-[0.72rem] font-medium px-3 py-1.5 rounded-full shadow-lg border border-neutral-700/40"
         style={{ opacity: scrollYProgress }}
       >
-        <motion.span className="tabular-nums mr-1">
-          {progressPercent}
-        </motion.span>
-        % read
+        <motion.span className="tabular-nums mr-1">{progressPercent}</motion.span>% read
       </motion.div>
 
-      {/* ---------- Back-to-top button ---------- */}
+      {/* Back to top */}
       <AnimatePresence>
         {showScrollTop && (
           <motion.button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            className="fixed bottom-8 left-8 z-40 bg-primary text-white p-3 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
-            initial={{ opacity: 0, scale: 0.8 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
+            className="fixed bottom-14 right-5 sm:bottom-7 sm:left-7 sm:right-auto z-[70]
+                       bg-primary text-white p-2.5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            type="button"
+            aria-label="Back to top"
           >
             ↑
           </motion.button>
         )}
       </AnimatePresence>
 
-      {/* ---------- Article Header ---------- */}
-      <section className="relative max-w-4xl mx-auto px-5 sm:px-8 pt-24 sm:pt-28 pb-8 text-center">
-        <motion.h1
-          className="text-3xl sm:text-4xl md:text-[2.6rem] font-extrabold font-display tracking-tight text-neutral-900 dark:text-neutral-50 leading-tight"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          {post.title}
-        </motion.h1>
+      {/* ---------- HERO HEADER (compact) ---------- */}
+      <section className="relative overflow-hidden border-b border-neutral-200/60 dark:border-neutral-800/60">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(66,133,244,0.12),transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(52,168,83,0.10),transparent_55%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.78),rgba(255,255,255,0.62),rgba(250,250,250,0.88))] dark:bg-[linear-gradient(to_bottom,rgba(10,10,10,0.74),rgba(10,10,10,0.62),rgba(10,10,10,0.86))]" />
 
-        <p className="mt-4 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-medium flex flex-wrap gap-x-2 gap-y-1 justify-center items-center">
-          <span>
-            {new Date(post.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </span>
-          <span className="text-neutral-400">•</span>
-          <span className="text-primary font-semibold">
-            {post.category || "Architecture"}
-          </span>
-          <span className="text-neutral-400">•</span>
-          <span>{readingTime} min read</span>
-        </p>
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10 pb-7">
+          {/* Top bar */}
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-200 hover:text-primary transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </Link>
 
-        {post.summary && (
-          <p className="mt-4 max-w-2xl mx-auto text-sm sm:text-base text-neutral-600 dark:text-neutral-400 leading-relaxed">
-            {post.summary}
-          </p>
-        )}
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={copyLink}
+                type="button"
+                className="inline-flex items-center gap-2 rounded-full border border-neutral-200/70 dark:border-neutral-800/70
+                           bg-white/70 dark:bg-neutral-900/60 px-3 py-1.5 text-xs font-medium
+                           text-neutral-700 dark:text-neutral-200 hover:border-primary/40 hover:text-primary transition-colors"
+              >
+                <Link2 className="h-4 w-4" />
+                {copied ? "Copied" : "Copy link"}
+              </button>
+
+              <a
+                href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-neutral-200/70 dark:border-neutral-800/70
+                           bg-white/70 dark:bg-neutral-900/60 px-3 py-1.5 text-xs font-medium
+                           text-neutral-700 dark:text-neutral-200 hover:border-sky-500/40 hover:text-sky-500 transition-colors"
+              >
+                <Twitter className="h-4 w-4" />
+                Share
+              </a>
+            </div>
+          </div>
+
+          {/* Title */}
+          <motion.h1
+            className="mt-4 text-[1.9rem] sm:text-[2.25rem] md:text-[2.65rem] font-extrabold font-display tracking-tight
+                       text-neutral-950 dark:text-neutral-50 leading-[1.12]"
+            initial={reduceMotion ? false : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            {post.title}
+          </motion.h1>
+
+          {/* Meta (compact pills) */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[0.78rem] sm:text-[0.82rem] text-neutral-700/85 dark:text-neutral-300/85">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 dark:bg-neutral-900/60 border border-neutral-200/70 dark:border-neutral-800/70 px-2.5 py-1">
+              <Tag className="h-4 w-4 text-neutral-500" />
+              <span className="font-semibold text-neutral-800 dark:text-neutral-200">{category}</span>
+            </span>
+
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 dark:bg-neutral-900/60 border border-neutral-200/70 dark:border-neutral-800/70 px-2.5 py-1">
+              <Calendar className="h-4 w-4 text-neutral-500" />
+              <span>
+                {dateObj.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              </span>
+            </span>
+
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 dark:bg-neutral-900/60 border border-neutral-200/70 dark:border-neutral-800/70 px-2.5 py-1">
+              <Clock className="h-4 w-4 text-neutral-500" />
+              <span>{readingTime} min</span>
+            </span>
+          </div>
+
+          {/* Summary (tight) */}
+          {post.summary && (
+            <p className="mt-3 max-w-3xl text-sm sm:text-[0.95rem] text-neutral-800/85 dark:text-neutral-200/85 leading-[1.55]">
+              {post.summary}
+            </p>
+          )}
+
+          {/* Hero image */}
+          {hero && (
+            <div className="mt-6 overflow-hidden rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-neutral-100 dark:bg-neutral-900 shadow-sm">
+              <div className="relative aspect-[16/9]">
+                <img
+                  src={hero}
+                  alt={post.title}
+                  loading="lazy"
+                  decoding="async"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
+              </div>
+            </div>
+          )}
+
+          {/* Mobile share row */}
+          <div className="mt-4 flex sm:hidden gap-2">
+            <button
+              onClick={copyLink}
+              type="button"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
+                         bg-white/70 dark:bg-neutral-900/60 px-4 py-2 text-xs font-medium
+                         text-neutral-700 dark:text-neutral-200 hover:border-primary/40 hover:text-primary transition-colors"
+            >
+              <Link2 className="h-4 w-4" />
+              {copied ? "Copied" : "Copy"}
+            </button>
+            <a
+              href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
+                         bg-white/70 dark:bg-neutral-900/60 px-4 py-2 text-xs font-medium
+                         text-neutral-700 dark:text-neutral-200 hover:border-sky-500/40 hover:text-sky-500 transition-colors"
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </a>
+          </div>
+        </div>
       </section>
 
-      {/* ---------- Main Layout ---------- */}
-      <section className="pb-16 pt-4 px-4 sm:px-6 flex justify-center">
-        <div className="relative w-full max-w-6xl flex gap-10 lg:gap-14 items-start">
-          {/* ---------- Main Content Card ---------- */}
-          <div className="relative flex-1 bg-white dark:bg-neutral-900/95 border border-neutral-200/70 dark:border-neutral-800/80 rounded-3xl shadow-[0_18px_55px_rgba(15,23,42,0.15)] dark:shadow-[0_18px_55px_rgba(0,0,0,0.6)] px-5 sm:px-8 md:px-10 py-10 md:py-12 lg:py-14">
-            {/* Subtle background gradient only at top */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-primary/6 via-transparent to-transparent rounded-t-3xl" />
+      {/* ---------- BODY (more compact) ---------- */}
+      <section className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+        <div className="mx-auto w-full max-w-6xl grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10 items-start">
+          {/* Main */}
+          <div
+            className="relative bg-white dark:bg-neutral-900/95 border border-neutral-200/70 dark:border-neutral-800/80 rounded-2xl
+                       shadow-[0_14px_40px_rgba(15,23,42,0.08)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.45)]
+                       px-5 sm:px-7 md:px-8 py-7 sm:py-8"
+          >
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-primary/7 via-transparent to-transparent rounded-t-2xl" />
 
-            {/* ---------- Markdown Content ---------- */}
-            <article className="relative z-10 mx-auto max-w-2xl sm:max-w-3xl text-[0.98rem] sm:text-[1.02rem] leading-[1.85] text-neutral-800 dark:text-neutral-100">
+            {/* Mobile TOC */}
+            {headings.length > 0 && (
+              <div className="lg:hidden relative z-10 mb-6">
+                <details className="rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-neutral-50/70 dark:bg-neutral-950/30 p-4">
+                  <summary className="cursor-pointer select-none text-sm font-semibold text-neutral-950 dark:text-neutral-50">
+                    On this page
+                  </summary>
+                  <div className="mt-3 space-y-1">
+                    {headings.map((h) => (
+                      <button
+                        key={h.id}
+                        type="button"
+                        onClick={() => scrollToHeading(h.id)}
+                        className={[
+                          "block w-full text-left rounded-lg px-2 py-1.5 text-sm transition",
+                          h.level === 3 ? "ml-3" : "",
+                          activeId === h.id
+                            ? "text-primary font-semibold bg-primary/5 dark:bg-primary/10"
+                            : "text-neutral-800 dark:text-neutral-200 hover:text-primary hover:bg-neutral-100/70 dark:hover:bg-neutral-800/40",
+                        ].join(" ")}
+                      >
+                        {h.text}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {/* Article (tight typography container) */}
+            <article className="relative z-10 mx-auto max-w-[72ch]">
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 rehypePlugins={[rehypeRaw, rehypeHighlight]}
@@ -522,62 +696,69 @@ export default function Post() {
               </ReactMarkdown>
             </article>
 
-            {/* ---------- Share Section ---------- */}
-            <div className="mt-10 flex flex-wrap gap-4 justify-center text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
-              <button
-                onClick={() =>
-                  navigator.clipboard.writeText(window.location.href)
-                }
-                className="px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-700 hover:border-primary/70 hover:text-primary transition-colors"
-              >
-                📋 Copy article link
-              </button>
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                  post.title
-                )}&url=${encodeURIComponent(window.location.href)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-700 hover:border-sky-500 hover:text-sky-400 transition-colors"
-              >
-                🐦 Share on X
-              </a>
+            {/* Author */}
+            <div className="mt-10 pt-6 border-t border-neutral-200/70 dark:border-neutral-800/70">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-950 dark:text-neutral-50">Tejas Sathe</p>
+                  <p className="mt-1 text-xs text-neutral-600 dark:text-neutral-400">
+                    System Design • GenAI • Scalable Engineering
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <a
+                    href="https://www.linkedin.com/in/tejas-sathe010/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200/70 dark:border-neutral-800/70
+                               bg-white/70 dark:bg-neutral-900/60 px-3 py-1.5 text-xs font-medium
+                               text-neutral-700 dark:text-neutral-200 hover:border-blue-500/40 hover:text-blue-500 transition-colors"
+                  >
+                    <Linkedin className="h-4 w-4" />
+                    LinkedIn
+                  </a>
+                  <a
+                    href="https://github.com/tejassathe010"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-neutral-200/70 dark:border-neutral-800/70
+                               bg-white/70 dark:bg-neutral-900/60 px-3 py-1.5 text-xs font-medium
+                               text-neutral-700 dark:text-neutral-200 hover:border-primary/40 hover:text-primary transition-colors"
+                  >
+                    <ArrowUpRight className="h-4 w-4" />
+                    GitHub
+                  </a>
+                </div>
+              </div>
             </div>
 
-            {/* ---------- Author Block ---------- */}
-            <div className="mt-16 pt-8 border-t border-neutral-200/70 dark:border-neutral-800/70 text-center">
-              <p className="text-sm text-neutral-600 dark:text-neutral-300">
-                ✍️ Written by{" "}
-                <span className="font-semibold text-primary">
-                  Tejas Sathe
-                </span>
-              </p>
-              <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-500 tracking-wide">
-                Exploring System Design, GenAI, and the craft of scalable
-                engineering.
-              </p>
-            </div>
-
-            {/* ---------- Related Posts ---------- */}
+            {/* Related */}
             {relatedPosts.length > 0 && (
-              <section className="mt-16 pt-8 border-t border-neutral-200/70 dark:border-neutral-800/70">
-                <h3 className="text-base sm:text-lg font-display font-semibold mb-6 text-neutral-900 dark:text-neutral-100">
+              <section className="mt-10 pt-6 border-t border-neutral-200/70 dark:border-neutral-800/70">
+                <h3 className="text-base font-display font-semibold mb-4 text-neutral-950 dark:text-neutral-50">
                   Continue reading
                 </h3>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {relatedPosts.map((p) => (
                     <Link
                       key={p.slug}
                       to={`/post/${p.slug}`}
-                      className="group block rounded-2xl border border-neutral-200/70 dark:border-neutral-800/80 bg-white dark:bg-neutral-900 p-4 sm:p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                      className="group block rounded-xl border border-neutral-200/70 dark:border-neutral-800/80
+                                 bg-white dark:bg-neutral-900 p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5
+                                 transition-all duration-200"
                     >
-                      <div className="text-[0.7rem] uppercase tracking-wide text-primary font-semibold mb-1">
-                        {p.category || p.tags?.[0] || "Article"}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[0.7rem] uppercase tracking-[0.16em] text-primary font-semibold">
+                          {formatCategory(p.category)}
+                        </div>
+                        <ArrowUpRight className="h-4 w-4 text-neutral-400 group-hover:text-primary transition-colors" />
                       </div>
-                      <h4 className="text-sm sm:text-base font-semibold text-neutral-900 dark:text-neutral-50 group-hover:text-primary transition-colors line-clamp-2">
+
+                      <h4 className="mt-1 text-sm font-semibold text-neutral-950 dark:text-neutral-50 group-hover:text-primary transition-colors line-clamp-2">
                         {p.title}
                       </h4>
-                      <p className="mt-2 text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 line-clamp-3">
+                      <p className="mt-2 text-xs text-neutral-600 dark:text-neutral-400 line-clamp-3 leading-relaxed">
                         {p.summary}
                       </p>
                     </Link>
@@ -587,34 +768,100 @@ export default function Post() {
             )}
           </div>
 
-          {/* ---------- TOC Sidebar ---------- */}
-          <aside className="hidden lg:block w-64 sticky top-24 self-start">
-            <div className="border-l border-neutral-200 dark:border-neutral-800 pl-5 py-2">
-              <p className="text-[0.7rem] uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-500 mb-3">
-                On this page
+          {/* Right rail */}
+          <aside className="hidden lg:block sticky top-24 self-start space-y-4">
+            {/* TOC */}
+            {headings.length > 0 && (
+              <div className="rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white dark:bg-neutral-900 p-4 shadow-sm">
+                <p className="text-[0.7rem] uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-500 mb-2">
+                  On this page
+                </p>
+                <nav className="space-y-1 text-[0.82rem] text-neutral-700 dark:text-neutral-300">
+                  {headings.map((h) => (
+                    <button
+                      key={h.id}
+                      onClick={() => scrollToHeading(h.id)}
+                      type="button"
+                      className={[
+                        "relative block w-full text-left rounded-lg px-2 py-1.5 transition-colors",
+                        h.level === 3 ? "ml-3" : "ml-0",
+                        activeId === h.id
+                          ? "text-primary font-semibold bg-primary/5 dark:bg-primary/10"
+                          : "hover:text-primary/80 hover:bg-neutral-50 dark:hover:bg-neutral-800/40",
+                      ].join(" ")}
+                    >
+                      <span className="line-clamp-2">{h.text}</span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            )}
+
+            {/* Key takeaways */}
+            {takeaways.length > 0 && (
+              <div className="rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white dark:bg-neutral-900 p-4 shadow-sm">
+                <p className="text-[0.7rem] uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-500 mb-2">
+                  Key takeaways
+                </p>
+                <ul className="space-y-2 text-[0.9rem] text-neutral-800 dark:text-neutral-200 leading-[1.55]">
+                  {takeaways.slice(0, 7).map((t, idx) => (
+                    <li key={`${idx}-${t}`} className="flex gap-2">
+                      <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary/80 shrink-0" />
+                      <span className="min-w-0">{t}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Share */}
+            <div className="rounded-xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white dark:bg-neutral-900 p-4 shadow-sm">
+              <p className="text-[0.7rem] uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-500 mb-2">
+                Share
               </p>
-              <nav className="space-y-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-                {headings.map((h) => (
-                  <button
-                    key={h.id}
-                    onClick={() => handleTocClick(h.id)}
-                    className={`relative block w-full text-left py-1 pr-2 transition-colors ${
-                      activeId === h.id
-                        ? "text-primary font-semibold"
-                        : "hover:text-primary/80"
-                    } ${h.level === 3 ? "ml-4" : "ml-0"}`}
-                  >
-                    {activeId === h.id && (
-                      <span className="absolute -left-4 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full bg-primary" />
-                    )}
-                    <span className="line-clamp-2">{h.text}</span>
-                  </button>
-                ))}
-              </nav>
+
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  onClick={copyLink}
+                  type="button"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200/70 dark:border-neutral-800/70
+                             bg-white/70 dark:bg-neutral-900/60 px-3 py-2 text-xs font-medium
+                             text-neutral-700 dark:text-neutral-200 hover:border-primary/40 hover:text-primary transition-colors"
+                >
+                  <Link2 className="h-4 w-4" />
+                  {copied ? "Copied" : "Copy link"}
+                </button>
+
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${shareTitle}&url=${shareUrl}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200/70 dark:border-neutral-800/70
+                             bg-white/70 dark:bg-neutral-900/60 px-3 py-2 text-xs font-medium
+                             text-neutral-700 dark:text-neutral-200 hover:border-sky-500/40 hover:text-sky-500 transition-colors"
+                >
+                  <Twitter className="h-4 w-4" />
+                  Share on X
+                </a>
+
+                <a
+                  href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-200/70 dark:border-neutral-800/70
+                             bg-white/70 dark:bg-neutral-900/60 px-3 py-2 text-xs font-medium
+                             text-neutral-700 dark:text-neutral-200 hover:border-blue-500/40 hover:text-blue-500 transition-colors"
+                >
+                  <Linkedin className="h-4 w-4" />
+                  Share on LinkedIn
+                </a>
+              </div>
             </div>
           </aside>
         </div>
       </section>
+
+      <div className="h-10" />
     </main>
   );
 }

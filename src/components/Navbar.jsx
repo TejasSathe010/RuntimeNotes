@@ -1,141 +1,261 @@
-import { useEffect, useState } from "react";
-import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence, useScroll, useTransform, LayoutGroup } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { Menu, X, ArrowUpRight } from "lucide-react";
+import {
+  motion as Motion,
+  AnimatePresence,
+  useScroll,
+  useTransform,
+  LayoutGroup,
+} from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
+import { usePrefersReducedMotion } from "../hooks/usePrefersReducedMotion";
+
+const NAV_LINKS = [
+  { name: "Home", path: "/" },
+  { name: "About", path: "/about" },
+];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   const { scrollY } = useScroll();
+  const headerHeight = useTransform(scrollY, [0, 120], [72, 60]);
+  const bgOpacity = useTransform(scrollY, [0, 120], [0.86, 0.98]);
 
-  // Smooth scroll fade + height shrink
-  const bgLight = useTransform(scrollY, [0, 150], ["rgba(255,255,255,0.9)", "rgba(255,255,255,0.7)"]);
-  const bgDark = useTransform(scrollY, [0, 150], ["rgba(13,17,23,0.9)", "rgba(13,17,23,0.6)"]);
-  const height = useTransform(scrollY, [0, 120], ["4.5rem", "3.6rem"]);
+  const headerStyle = prefersReducedMotion ? undefined : { height: headerHeight };
+  const bgStyle = prefersReducedMotion ? undefined : { opacity: bgOpacity };
 
-  const links = [
-    { name: "Home", path: "/" },
-    { name: "About", path: "/about" },
-  ];
-
-  // Close dropdown when route changes
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    const prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.documentElement.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const handler = () => {
+      if (mq.matches) setOpen(false);
+    };
+    handler();
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  const isActivePath = useMemo(() => new Set([pathname]), [pathname]);
 
   return (
-    <motion.header
-      style={{ height }}
-      className="sticky top-0 z-50 transition-all duration-300 border-b border-neutral-200/60 dark:border-neutral-800/60"
+    <Motion.header
+      role="banner"
+      style={headerStyle}
+      className="sticky top-0 z-50 border-b border-neutral-200/60 bg-transparent dark:border-neutral-800/60"
     >
-      <motion.div
-        style={{
-          background: bgLight,
-        }}
-        className="absolute inset-0 -z-10 backdrop-blur-xl dark:[background:var(--tw-bg-opacity)_rgba(13,17,23,var(--tw-bg-opacity))]"
+      {/* Skip link for accessibility */}
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:z-[60]
+                   rounded-md bg-white px-3 py-2 text-sm font-medium text-neutral-900 shadow
+                   ring-1 ring-neutral-200 dark:bg-neutral-950 dark:text-neutral-50 dark:ring-neutral-800"
+      >
+        Skip to content
+      </a>
+
+      <Motion.div
+        style={bgStyle}
+        className="absolute inset-0 -z-10 bg-white/90 backdrop-blur-xl dark:bg-neutral-950/85"
+        aria-hidden="true"
       />
 
-      <nav className="max-w-7xl mx-auto px-6 md:px-10 flex justify-between items-center h-full">
-        {/* ---------- Brand ---------- */}
+      <nav
+        className="mx-auto flex h-full w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8"
+        aria-label="Main navigation"
+      >
         <Link
           to="/"
-          className="text-xl md:text-2xl font-display font-extrabold tracking-tight
-                     bg-gradient-to-r from-[#4285F4] via-[#34A853] via-40% via-[#FBBC05] to-[#EA4335]
-                     bg-clip-text text-transparent animate-gradient-x hover:opacity-90 focus:outline-none 
-                     focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+          className="group inline-flex items-center gap-2 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          aria-label="Daily Tech Chronicles"
         >
-          Daily Tech Chronicles
+          <span
+            className="text-base font-extrabold tracking-tight sm:text-lg md:text-xl
+                       bg-gradient-to-r from-[#4285F4] via-[#34A853] via-40% to-[#EA4335]
+                       bg-clip-text text-transparent"
+          >
+            Daily Tech Chronicles
+          </span>
+          <span className="hidden text-xs text-neutral-500 group-hover:text-neutral-700 dark:text-neutral-400 dark:group-hover:text-neutral-200 sm:inline">
+            Blog
+          </span>
         </Link>
 
-        {/* ---------- Desktop Links ---------- */}
         <LayoutGroup>
-          <div className="hidden md:flex items-center gap-8 text-[0.95rem] font-medium relative">
-            {links.map((link) => {
-              const isActive = pathname === link.path;
+          <div className="hidden items-center gap-1 md:flex">
+            {NAV_LINKS.map((link) => {
+              const isActive = isActivePath.has(link.path);
               return (
                 <div key={link.name} className="relative">
                   <Link
                     to={link.path}
-                    className={`transition-colors duration-200 pb-1 ${
+                    aria-current={isActive ? "page" : undefined}
+                    className={[
+                      "relative inline-flex items-center rounded-md px-3 py-2 text-[0.95rem] font-medium",
+                      "transition-colors",
                       isActive
                         ? "text-primary"
-                        : "text-neutral-700 dark:text-neutral-300 hover:text-primary"
-                    }`}
+                        : "text-neutral-700 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-neutral-50",
+                      "hover:bg-neutral-100/70 dark:hover:bg-neutral-900/40",
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    ].join(" ")}
                   >
                     {link.name}
                   </Link>
+
                   {isActive && (
-                    <motion.span
-                      layoutId="active-link-underline"
-                      className="absolute bottom-0 left-0 h-[2px] w-full rounded-full bg-primary"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    <Motion.span
+                      layoutId="active-link-pill"
+                      className="absolute inset-x-2 -bottom-[2px] h-[2px] rounded-full bg-primary"
+                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
                     />
                   )}
                 </div>
               );
             })}
 
-            {/* GitHub link */}
+            <div className="mx-2 h-6 w-px bg-neutral-200/70 dark:bg-neutral-800/70" />
+
             <a
               href="https://github.com/TejasSathe010"
               target="_blank"
               rel="noreferrer"
-              className="group relative text-neutral-700 dark:text-neutral-300 hover:text-primary transition-colors pb-1"
+              className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-[0.95rem] font-medium
+                         text-neutral-700 transition-colors hover:bg-neutral-100/70 hover:text-neutral-900
+                         focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+                         dark:text-neutral-300 dark:hover:bg-neutral-900/40 dark:hover:text-neutral-50"
             >
-              GitHub
-              <span className="absolute bottom-0 left-0 w-0 h-[2px] bg-primary rounded-full transition-all duration-300 group-hover:w-full" />
+              GitHub <ArrowUpRight className="h-4 w-4 opacity-70" />
             </a>
           </div>
         </LayoutGroup>
 
-        {/* ---------- Mobile Menu Toggle ---------- */}
+        {/* Mobile toggle */}
         <button
-          onClick={() => setOpen(!open)}
-          className="md:hidden p-2 text-neutral-600 dark:text-neutral-200 hover:text-primary transition 
-                     focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-md"
-          aria-label="Toggle menu"
+          type="button"
+          onClick={() => setOpen((prev) => !prev)}
+          className="md:hidden inline-flex items-center justify-center rounded-md p-2
+                     text-neutral-700 hover:bg-neutral-100/70 hover:text-neutral-900
+                     focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+                     dark:text-neutral-200 dark:hover:bg-neutral-900/50 dark:hover:text-white"
+          aria-label="Open navigation menu"
+          aria-expanded={open}
+          aria-controls="mobile-drawer"
         >
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </nav>
 
-      {/* ---------- Mobile Dropdown ---------- */}
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="absolute top-full left-0 w-full bg-white/95 dark:bg-neutral-950/90 border-t 
-                       border-neutral-200/60 dark:border-neutral-800/60 backdrop-blur-lg 
-                       shadow-[0_8px_24px_rgba(0,0,0,0.08)] md:hidden"
+          <Motion.div
+            className="fixed inset-0 z-[60] md:hidden"
+            aria-hidden={!open}
           >
-            <div className="flex flex-col items-center gap-6 py-6 text-base font-medium text-neutral-700 dark:text-neutral-300">
-              {links.map((link) => {
-                const isActive = pathname === link.path;
-                return (
-                  <Link
-                    key={link.name}
-                    to={link.path}
-                    className={`transition-colors duration-200 ${
-                      isActive ? "text-primary font-semibold" : "hover:text-primary"
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                );
-              })}
-              <a
-                href="https://github.com/TejasSathe010"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-primary transition-colors duration-200"
-              >
-                GitHub
-              </a>
-            </div>
-          </motion.div>
+            <Motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.18 }}
+              className="absolute inset-0 bg-black/35"
+              onClick={() => setOpen(false)}
+            />
+
+            <Motion.aside
+              id="mobile-drawer"
+              role="dialog"
+              aria-modal="true"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.22, ease: "easeOut" }}
+              className="absolute right-0 top-0 h-full w-[86%] max-w-sm
+                         border-l border-neutral-200/60 bg-white shadow-2xl
+                         dark:border-neutral-800/60 dark:bg-neutral-950"
+            >
+              <div className="flex items-center justify-between border-b border-neutral-200/60 px-5 py-4 dark:border-neutral-800/60">
+                <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-50">
+                  Menu
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-md p-2 text-neutral-700 hover:bg-neutral-100/70
+                             focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+                             dark:text-neutral-200 dark:hover:bg-neutral-900/50"
+                  aria-label="Close menu"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="px-5 py-5">
+                <div className="flex flex-col gap-1">
+                  {NAV_LINKS.map((link) => {
+                    const isActive = pathname === link.path;
+                    return (
+                      <Link
+                        key={link.name}
+                        to={link.path}
+                        aria-current={isActive ? "page" : undefined}
+                        className={[
+                          "inline-flex items-center justify-between rounded-lg px-4 py-3 text-base font-medium",
+                          "transition-colors",
+                          isActive
+                            ? "bg-neutral-100 text-primary dark:bg-neutral-900/50"
+                            : "text-neutral-800 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-900/50",
+                          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        ].join(" ")}
+                      >
+                        <span>{link.name}</span>
+                        <ArrowUpRight className="h-4 w-4 opacity-60" />
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="my-5 h-px bg-neutral-200/70 dark:bg-neutral-800/70" />
+
+                <a
+                  href="https://github.com/TejasSathe010"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full items-center justify-between rounded-lg px-4 py-3
+                             text-base font-medium text-neutral-800 hover:bg-neutral-100
+                             focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40
+                             dark:text-neutral-100 dark:hover:bg-neutral-900/50"
+                >
+                  <span>GitHub</span>
+                  <ArrowUpRight className="h-4 w-4 opacity-60" />
+                </a>
+
+                <p className="mt-6 text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+                  Exploring System Design, GenAI, and scalable engineering patterns.
+                </p>
+              </div>
+            </Motion.aside>
+          </Motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </Motion.header>
   );
 }

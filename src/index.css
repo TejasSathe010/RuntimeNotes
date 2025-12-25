@@ -2,6 +2,29 @@
 
 html {
   scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
+}
+
+body {
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.5);
 }
 
 canvas {
@@ -11,71 +34,48 @@ canvas {
 
 html.dark canvas {
   mix-blend-mode: lighten;
-    filter: blur(30px) brightness(1.2) contrast(1.1);
+  filter: blur(30px) brightness(1.2) contrast(1.1);
 }
-
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
-
-/* Smooth paragraph rhythm */
 .prose p {
   margin-top: 1.4em;
   margin-bottom: 1.4em;
   text-indent: 1.75em;
   text-align: justify;
 }
+
 .prose p:first-of-type {
   text-indent: 0;
 }
 
-/* Drop-cap removal: cleaner start */
 .prose p:first-of-type::first-letter {
   all: unset;
 }
 
-/* Elegant list markers */
 .prose ul li::marker {
   color: #1a73e8;
 }
 
-/* Subtle code typography */
 .prose pre code {
   font-size: 0.95em;
   letter-spacing: -0.015em;
 }
 
-/* Balanced horizontal rules */
 .prose hr {
   border: none;
   height: 1px;
   background: linear-gradient(to right, transparent, #ccc, transparent);
   margin: 3em 0;
-}
-
-/* Hide scrollbar across all browsers while keeping scroll functional */
-
-/* Chrome, Edge, Safari */
-::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-}
-
-/* Firefox */
-html {
-  scrollbar-width: none; /* hides scrollbar */
-}
-
-/* Internet Explorer (legacy) */
-body {
-  -ms-overflow-style: none;
-}
-
-/* Make sure smooth scroll still feels native */
-html {
-  scroll-behavior: smooth;
 }

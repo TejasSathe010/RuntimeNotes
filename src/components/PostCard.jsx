@@ -1,114 +1,79 @@
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { ArrowUpRight } from "lucide-react";
 
 export default function PostCard({ post }) {
-  const readingTime = Math.ceil(post.content.split(/\s+/).length / 200);
+  const readingTime = Math.max(1, Math.ceil((post.content || "").split(/\s+/).length / 220));
+
+  const categoryLabel = (post.category || "Uncategorized")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return (
     <Link
       to={`/post/${post.slug}`}
-      className="group block focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-2xl"
+      className="group block h-full rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      aria-label={`Read article: ${post.title}`}
     >
       <article
-        className={`
-          relative flex flex-col justify-between h-full
-          bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm
-          border border-neutral-200/60 dark:border-neutral-800/60
-          rounded-2xl p-6
-          shadow-[0_1px_2px_rgba(0,0,0,0.05)]
-          hover:shadow-[0_8px_28px_rgba(0,0,0,0.08)]
-          hover:-translate-y-[6px]
-          transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]
-          overflow-hidden
-        `}
+        className={[
+          "relative h-full overflow-hidden rounded-2xl",
+          "border border-neutral-200/70 dark:border-neutral-800/70",
+          "bg-white dark:bg-neutral-900",
+          "shadow-sm transition-all duration-300",
+          "group-hover:-translate-y-1 group-hover:shadow-md",
+        ].join(" ")}
       >
-        {/* ---------- Hover Gradient Border Glow ---------- */}
-        <div
-          className="
-            absolute inset-0 rounded-2xl 
-            opacity-0 group-hover:opacity-100 transition-opacity duration-500
-            bg-[linear-gradient(120deg,#4285F4_0%,#34A853_25%,#FBBC05_60%,#EA4335_100%)]
-            bg-[length:400%_400%]
-            animate-[gradientShift_6s_ease_infinite]
-            pointer-events-none
-          "
-          style={{ mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", WebkitMaskComposite: "xor" }}
-        />
+        {/* Subtle gradient accent (professional, not loud) */}
+        <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute -inset-24 bg-[radial-gradient(circle_at_30%_10%,rgba(66,133,244,0.18),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(52,168,83,0.14),transparent_55%),radial-gradient(circle_at_40%_95%,rgba(234,67,53,0.10),transparent_55%)]" />
+        </div>
 
-        {/* ---------- Header ---------- */}
-        <header className="mb-4 relative z-10">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-neutral-500 dark:text-neutral-400 tracking-wide uppercase">
-              {post.category?.replace("-", " ")}
-            </p>
-            <span className="text-xs text-neutral-400 dark:text-neutral-500">
-              {readingTime} min read
+        {/* Top hairline accent */}
+        <div className="pointer-events-none absolute left-0 top-0 h-[2px] w-full bg-gradient-to-r from-[#4285F4] via-[#34A853] to-[#EA4335] opacity-60" />
+
+        <div className="relative flex h-full flex-col p-5 sm:p-6">
+          {/* Meta row */}
+          <header className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-1 text-[0.7rem] font-semibold text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                  {categoryLabel}
+                </span>
+
+                <span className="text-[0.75rem] text-neutral-500 dark:text-neutral-400">
+                  {format(new Date(post.date), "PPP")}
+                </span>
+              </div>
+            </div>
+
+            <span className="shrink-0 text-[0.75rem] font-medium text-neutral-500 dark:text-neutral-400">
+              {readingTime} min
             </span>
-          </div>
+          </header>
 
-          <h2
-            className="
-              text-[1.25rem] font-semibold leading-snug
-              text-neutral-900 dark:text-neutral-100
-              group-hover:text-primary
-              transition-colors duration-200
-            "
-          >
+          {/* Title */}
+          <h2 className="mt-4 font-display text-lg sm:text-xl font-semibold leading-snug text-neutral-900 dark:text-neutral-50 group-hover:text-primary transition-colors">
             {post.title}
           </h2>
 
-          <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-            {format(new Date(post.date), "PPP")}
+          {/* Summary */}
+          <p className="mt-2 text-sm sm:text-[0.95rem] leading-relaxed text-neutral-600 dark:text-neutral-400 line-clamp-3">
+            {post.summary}
           </p>
-        </header>
 
-        {/* ---------- Summary ---------- */}
-        <p
-          className="
-            relative z-10 text-neutral-700 dark:text-neutral-400 
-            mb-6 line-clamp-3 leading-relaxed transition-colors duration-300
-          "
-        >
-          {post.summary}
-        </p>
+          {/* Footer */}
+          <footer className="mt-5 flex items-center justify-between pt-4 border-t border-neutral-200/70 dark:border-neutral-800/70">
+            <span className="inline-flex items-center gap-1 text-sm font-medium text-primary">
+              Read more
+              <ArrowUpRight className="h-4 w-4 opacity-80 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </span>
 
-        {/* ---------- Footer ---------- */}
-        <footer className="relative z-10 mt-auto flex items-center justify-between text-sm">
-          <span
-            className="
-              inline-flex items-center font-medium text-primary
-              group-hover:underline underline-offset-4
-              transition-all duration-200
-            "
-          >
-            Read more
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="ml-1.5 h-4 w-4 group-hover:translate-x-0.5 transition-transform duration-200"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </span>
-
-          {/* Date pill */}
-          <span
-            className="
-              px-2.5 py-0.5 rounded-full text-xs font-medium
-              bg-primary/10 text-primary dark:bg-primary/20
-              group-hover:bg-primary/20 transition-colors
-            "
-          >
-            {format(new Date(post.date), "MMM d")}
-          </span>
-        </footer>
+            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary dark:bg-primary/15">
+              {format(new Date(post.date), "MMM d")}
+            </span>
+          </footer>
+        </div>
       </article>
     </Link>
   );
