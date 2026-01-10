@@ -1,0 +1,22 @@
+{
+  "categories": [
+    {
+      "name": "SystemDesign",
+      "path": "SystemDesign",
+      "normalized": "system-design"
+    },
+    {
+      "name": "DSA",
+      "path": "DSA",
+      "normalized": "dsa"
+    },
+    {
+      "name": "GenAI",
+      "path": "GenAI",
+      "normalized": "genai"
+    }
+  ],
+  "meta": {
+    "note": "This manifest is optional. If not present, the system will use default categories."
+  }
+}

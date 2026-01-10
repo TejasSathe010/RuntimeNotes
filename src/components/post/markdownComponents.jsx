@@ -1,193 +1,126 @@
-import CodeBlock from "./CodeBlock";
-import { slugifyHeading, extractText } from "./markdownUtils";
+import { useState, isValidElement, cloneElement } from "react";
+import { Sparkles } from "lucide-react";
+import { slugifyHeading, extractText, cn } from "../../utils/common";
+import { parseMeta } from "../../utils/markdown";
+import ReactFlowEmbed from "../ReactFlowEmbed";
+import { Suspense, lazy } from "react";
 
-const markdownComponents = {
-  h1: ({ children, ...props }) => {
-    const text = extractText(children);
-    const id = slugifyHeading(text);
+const CodePlayground = lazy(() => import("../CodePlayground"));
+
+export function PreBlock({ children, ...props }) {
+  const meta = props["data-meta"] || "";
+  const child = Array.isArray(children) ? children[0] : children;
+
+  if (isValidElement(child)) {
+    return cloneElement(child, { ...child.props, "data-meta": meta });
+  }
+
+  return <pre {...props}>{children}</pre>;
+}
+
+export function CodeBlock({ inline, className, children, node, ...props }) {
+  const match = /language-(\w+)/.exec(className || "");
+  const language = match ? match[1].toLowerCase() : "code";
+
+  const [copied, setCopied] = useState(false);
+  const plainText = extractText(children);
+
+  const isInline = inline ?? (!match && !plainText.includes("\n"));
+  const lang = match?.[1]?.toLowerCase();
+
+  if (!inline && lang === "reactflow") {
+    const jsonText = extractText(children);
+    return <ReactFlowEmbed jsonText={jsonText} />;
+  }
+
+  if (isInline) {
     return (
-      <h1
-        id={id}
+      <code
+        className="px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800/80
+                   text-[0.92em] font-mono text-neutral-950 dark:text-neutral-100"
         {...props}
-        className="scroll-mt-32 mt-10 mb-5 text-[2rem] sm:text-[2.25rem] md:text-[2.4rem] font-semibold leading-[1.12] text-neutral-900 dark:text-neutral-50"
       >
         {children}
-      </h1>
+      </code>
     );
-  },
-  h2: ({ children, ...props }) => {
-    const text = extractText(children);
-    const id = slugifyHeading(text);
+  }
+
+  const metaFromProps = props["data-meta"] || "";
+  const metaFromNode = node?.data?.meta || node?.meta || "";
+  const meta = metaFromProps || metaFromNode;
+  const metaInfo = parseMeta(meta);
+
+  let markerInfo = { runner: false, template: null, title: null };
+  const firstLine = (plainText.split("\n")[0] || "").trim();
+  if (/^\/\/\s*@runner\b/i.test(firstLine)) {
+    const rest = firstLine.replace(/^\/\/\s*@runner\s*/i, "");
+    markerInfo = parseMeta(`runner ${rest}`);
+  }
+
+  const isRunnableLang = ["js", "ts", "jsx", "tsx"].includes(language);
+  const shouldRun = isRunnableLang && (metaInfo.runner || markerInfo.runner);
+
+  if (shouldRun) {
+    const template = metaInfo.template || markerInfo.template || null;
+    const title = metaInfo.title || markerInfo.title || "Playground";
+
+    const runnableCode = markerInfo.runner
+      ? plainText.split("\n").slice(1).join("\n")
+      : plainText;
 
     return (
-      <h2
-        id={id}
-        {...props}
-        className="scroll-mt-28 mt-12 mb-4 text-[1.45rem] sm:text-[1.6rem] font-semibold leading-[1.2] tracking-tight text-neutral-900 dark:text-neutral-50"
+      <Suspense
+        fallback={
+          <div className="my-6 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white dark:bg-neutral-900 p-4 text-sm text-neutral-600 dark:text-neutral-300">
+            Loading playground…
+          </div>
+        }
       >
-        {children}
-      </h2>
+        <CodePlayground
+          code={runnableCode}
+          language={language}
+          template={template}
+          title={title}
+        />
+      </Suspense>
     );
-  },
-  h3: ({ children, ...props }) => {
-    const text = extractText(children);
-    const id = slugifyHeading(text);
+  }
 
-    return (
-      <h3
-        id={id}
-        {...props}
-        className="scroll-mt-24 mt-8 mb-3 text-[1.15rem] sm:text-[1.2rem] font-semibold leading-[1.3] text-neutral-900 dark:text-neutral-50"
-      >
-        {children}
-      </h3>
-    );
-  },
+  const headerLang = match ? match[1].toUpperCase() : "CODE";
 
-  p: ({ children, ...props }) => (
-    <p
-      {...props}
-      className="my-5 max-w-[70ch] text-[1rem] sm:text-[1.04rem] leading-[1.8] tracking-[0.005em] text-neutral-800 dark:text-neutral-100"
-    >
-      {children}
-    </p>
-  ),
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(plainText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // Clipboard write failed, ignore silently
+    }
+  };
 
-  a: ({ children, href, ...props }) => {
-    const isExternal = href && /^https?:\/\//.test(href);
-    return (
-      <a
-        href={href}
-        {...props}
-        target={isExternal ? "_blank" : undefined}
-        rel={isExternal ? "noreferrer" : undefined}
-        className="font-medium text-[#0b57d0] underline underline-offset-[3px] decoration-[#0b57d0]/30 hover:decoration-[#0b57d0]"
-      >
-        {children}
-        {isExternal && (
-          <span className="ml-1 text-[0.6rem] align-super">↗</span>
-        )}
-      </a>
-    );
-  },
+  return (
+    <div className="my-6 overflow-hidden rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-[#0d1117] shadow-[0_14px_50px_rgba(0,0,0,0.18)]">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-neutral-800 text-[0.72rem] text-neutral-400">
+        <div className="flex gap-1.5 items-center">
+          <span className="w-3 h-3 rounded-full bg-red-500/90" />
+          <span className="w-3 h-3 rounded-full bg-yellow-500/90" />
+          <span className="w-3 h-3 rounded-full bg-green-500/90" />
+          <span className="ml-3 uppercase tracking-[0.16em] text-neutral-300">{headerLang}</span>
+        </div>
+        <button
+          onClick={handleCopy}
+          type="button"
+          className="px-2.5 py-1 rounded-lg bg-neutral-800/70 hover:bg-neutral-700 text-neutral-100 transition-colors"
+        >
+          {copied ? "Copied ✓" : "Copy"}
+        </button>
+      </div>
 
-  strong: ({ children, ...props }) => (
-    <strong
-      {...props}
-      className="font-semibold text-neutral-900 dark:text-neutral-50"
-    >
-      {children}
-    </strong>
-  ),
-  em: ({ children, ...props }) => (
-    <em
-      {...props}
-      className="italic text-neutral-800 dark:text-neutral-200"
-    >
-      {children}
-    </em>
-  ),
-
-  blockquote: ({ children, ...props }) => (
-    <blockquote
-      {...props}
-      className="mt-6 mb-8 max-w-[68ch] border-l-4 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-5 py-4 rounded-r-2xl text-[0.96rem] leading-[1.75] text-neutral-800 dark:text-neutral-50"
-    >
-      {children}
-    </blockquote>
-  ),
-
-  ul: ({ children, ...props }) => (
-    <ul
-      {...props}
-      className="my-5 ml-1 pl-5 space-y-2 text-[1rem] sm:text-[1.02rem] leading-[1.75] text-neutral-800 dark:text-neutral-100 list-disc marker:text-neutral-400 dark:marker:text-neutral-500"
-    >
-      {children}
-    </ul>
-  ),
-  ol: ({ children, ...props }) => (
-    <ol
-      {...props}
-      className="my-5 ml-1 pl-5 space-y-2 text-[1rem] sm:text-[1.02rem] leading-[1.75] text-neutral-800 dark:text-neutral-100 list-decimal marker:text-neutral-400 dark:marker:text-neutral-500"
-    >
-      {children}
-    </ol>
-  ),
-  li: ({ children, ...props }) => (
-    <li
-      {...props}
-      className="leading-[1.75] text-neutral-800 dark:text-neutral-100"
-    >
-      {children}
-    </li>
-  ),
-
-  table: ({ children, ...props }) => (
-    <div className="my-7 w-full overflow-x-auto rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900">
-      <table
-        {...props}
-        className="min-w-full text-sm text-left border-collapse"
-      >
-        {children}
-      </table>
+      <pre className="p-4 sm:p-5 text-[0.9rem] sm:text-[0.95rem] text-zinc-50 leading-[1.75] overflow-x-auto">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
     </div>
-  ),
-  thead: ({ children, ...props }) => (
-    <thead
-      {...props}
-      className="bg-neutral-100 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100"
-    >
-      {children}
-    </thead>
-  ),
-  tr: ({ children, ...props }) => (
-    <tr
-      {...props}
-      className="even:bg-neutral-50 dark:even:bg-neutral-900/60"
-    >
-      {children}
-    </tr>
-  ),
-  th: ({ children, ...props }) => (
-    <th
-      {...props}
-      className="border-b border-neutral-200 dark:border-neutral-800 px-3 py-2 font-semibold text-[0.85rem]"
-    >
-      {children}
-    </th>
-  ),
-  td: ({ children, ...props }) => (
-    <td
-      {...props}
-      className="border-t border-neutral-200 dark:border-neutral-800 px-3 py-2 align-top text-[0.9rem]"
-    >
-      {children}
-    </td>
-  ),
-
-  img: ({ alt, ...props }) => (
-    <figure className="my-8">
-      <img
-        {...props}
-        alt={alt}
-        className="mx-auto max-h-[420px] rounded-2xl border border-neutral-200 dark:border-neutral-800 shadow-sm object-contain"
-      />
-      {alt && (
-        <figcaption className="mt-2 text-center text-xs text-neutral-500 dark:text-neutral-400">
-          {alt}
-        </figcaption>
-      )}
-    </figure>
-  ),
-
-  hr: (props) => (
-    <hr
-      {...props}
-      className="my-12 border-0 h-px bg-gradient-to-r from-transparent via-neutral-300/80 dark:via-neutral-700 to-transparent"
-    />
-  ),
-
-  code: CodeBlock,
-};
-
-export default markdownComponents;
+  );
+}

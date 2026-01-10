@@ -1,5 +1,5 @@
 ---
-title: "When updated_at Stopped Being My Problem - Daily Tech Chronicles #02"
+title: "When updated_at Stopped Being My Problem - RuntimeNotes #02"
 date: "2025-12-03"
 summary: "How a review comment about updated_at pushed me from CRUD thinking to database-enforced invariants, moving time, ownership, and integrity out of Node.js and into the schema where they belong."
 ---

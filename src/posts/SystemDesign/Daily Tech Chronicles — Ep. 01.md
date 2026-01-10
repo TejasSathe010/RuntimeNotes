@@ -1,6 +1,5 @@
 ---
-
-title: "When My Backend Stopped Being Code and Became a System — #01"
+title: "When My Backend Stopped Being Code and Became a System #01"
 date: "2025-11-26"
 summary: "Real-world lessons from implementing a licensing platform: Stripe subscriptions, metadata-driven billing, JWT rotation, DB invariants, webhook reliability, and architectural mistakes that shaped me."
 ---
@@ -137,20 +136,20 @@ sign → verify → done
 
 But real systems need lifecycle semantics.
 
-#### Access token
+### Access token
 
 * **RS256**
 * Short-lived (≈ 15 minutes)
 * Contains: `sub`, `sid`, `email`
 
-#### Refresh token
+### Refresh token
 
 * Random 48-byte value
 * Hashed and stored in DB
 * Bound to a single session/device
 * Rotated on every refresh
 
-#### Sessions table (shape)
+### Sessions table (shape)
 
 ```text
 session_sid (PK)
@@ -199,6 +198,7 @@ if (metadata.product_family !== "self_hosted") {
 * Accept retries safely
 
 **🔥 Takeaway**
+
 Webhooks behave like distributed messages — treat them as such.
 
 ---
@@ -226,6 +226,7 @@ This one check prevents:
 * Accidental leakage
 
 **🔥 Takeaway**
+
 Every row is a boundary. Authorization is resource-level, not just login-level.
 
 ---
@@ -244,6 +245,7 @@ Deployment forced a mindset shift from “Node app” to “running service.”
 * JWT keys stored securely on disk
 
 **🔥 Takeaway**
+
 Production = reproducibility + observability + predictability.
 
 ---
@@ -270,6 +272,7 @@ The real flow is a lifecycle:
 10. UI displays license
 
 **🔥 Takeaway**
+
 UX drives the API contract. Once the lifecycle is clear, backend design becomes obvious.
 
 ---

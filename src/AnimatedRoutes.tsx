@@ -9,16 +9,35 @@ export function AnimatedRoutes() {
   const location = useLocation();
   const reduceMotion = useReducedMotion();
 
+  const pageVariants = {
+    initial: reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 },
+  };
+
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="wait" initial={false}>
       <motion.main
         id="content"
         key={location.pathname}
-        initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={reduceMotion ? undefined : { opacity: 0, y: -10 }}
-        transition={{ duration: 0.28, ease: "easeOut" }}
-        className="py-6 sm:py-10"
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={{
+          duration: reduceMotion ? 0 : 0.28,
+          ease: "easeOut",
+        }}
+        // Keeps your existing spacing, but makes layout more “app-like”
+        className={[
+          "py-6 sm:py-10",
+          "min-h-[calc(100dvh-4rem)]", // prevents footer jump on short pages
+          "focus:outline-none",
+        ].join(" ")}
+        // Helps screen readers understand page changes without removing anything else
+        role="main"
+        aria-live="polite"
+        tabIndex={-1}
       >
         <Routes location={location}>
           <Route path="/" element={<Home />} />

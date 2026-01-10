@@ -1,0 +1,22 @@
+{
+  "categories": [
+    {
+      "name": "SystemDesign",
+      "path": "SystemDesign",
+      "normalized": "system-design"
+    },
+    {
+      "name": "DSA",
+      "path": "DSA",
+      "normalized": "dsa"
+    },
+    {
+      "name": "GenAI",
+      "path": "GenAI",
+      "normalized": "genai"
+    }
+  ],
+  "meta": {
+    "updated": "2024-01-01T00:00:00Z"
+  }
+}

@@ -1,8 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { useReducedMotion } from "framer-motion";
-
-const TITLE_PREFIX = "Daily Tech Chronicles";
+import { TITLE_PREFIX } from "./utils/constants";
 
 export function RouteEffects() {
   const { pathname } = useLocation();
