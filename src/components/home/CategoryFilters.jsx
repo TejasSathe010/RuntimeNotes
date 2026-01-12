@@ -4,7 +4,7 @@ import { cn } from "../../utils/common";
 export default function CategoryFilters({ categories, categoryCounts, catKey, setCatKey }) {
   return (
     <LayoutGroup>
-      <div className="relative flex gap-2 overflow-x-auto no-scrollbar py-1 pr-1">
+      <div className="relative flex gap-2 overflow-x-auto no-scrollbar py-1 pr-4">
         {categories.map((c) => {
           const active = catKey === c.key;
           const count = categoryCounts.get(c.key) ?? 0;

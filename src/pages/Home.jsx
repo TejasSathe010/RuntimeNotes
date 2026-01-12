@@ -12,21 +12,13 @@ import {
   useReducedMotion,
   LayoutGroup,
 } from "framer-motion";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
-  Search,
-  XCircle,
-  ArrowUpRight,
   SlidersHorizontal,
   Sparkles,
-  Command,
   Hash,
   Clock,
-  Check,
   Filter,
-  X,
-  Bookmark,
-  History,
 } from "lucide-react";
 import Fuse from "fuse.js";
 import { getPosts } from "../utils/posts";
@@ -36,9 +28,7 @@ import {
   cn,
   normalizeKey,
   startCaseFromKey,
-  formatDate,
   safeMs,
-  wordCount,
   readingMinutesFromContent,
   safeJsonParse,
   buildHighlights,
@@ -51,7 +41,7 @@ import {
   categoryLabelFromKey,
   readingBucket,
 } from "../utils/constants";
-import { getLocalArray, setLocalArray, addToLocalArray } from "../utils/localStorage";
+import { getLocalArray, setLocalArray } from "../utils/localStorage";
 import Toast from "../components/Toast";
 import SearchBar from "../components/home/SearchBar";
 import FilterBadges from "../components/home/FilterBadges";
@@ -69,8 +59,6 @@ export default function Home() {
   const paletteRef = useRef(null);
   const paletteInputRef = useRef(null);
   const lastFocusedRef = useRef(null);
-
-  const toastTimerRef = useRef(0);
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -315,6 +303,12 @@ export default function Home() {
   const categoryCounts = useMemo(() => {
     const counts = new Map();
     counts.set("all", normalizedPosts.length);
+    
+    const presetKeys = CATEGORY_PRESETS.map((c) => c.key);
+    for (const key of presetKeys) {
+      counts.set(key, 0);
+    }
+    
     for (const p of normalizedPosts) {
       const k = p.categoryKey || "uncategorized";
       counts.set(k, (counts.get(k) || 0) + 1);
@@ -607,19 +601,20 @@ export default function Home() {
             />
 
             {/* Filters */}
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="mt-4 flex flex-col items-center gap-3 w-full">
               {/* Categories row */}
-              <div className="flex items-center justify-between gap-3">
+              <div className="w-full">
                 <CategoryFilters
                   categories={categories}
                   categoryCounts={categoryCounts}
                   catKey={catKey}
                   setCatKey={setCatKey}
                 />
+                </div>
 
                 {/* Sort + clear */}
-                <div className="flex items-center gap-2">
-                  <div className="hidden sm:inline-flex items-center gap-2 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/80 dark:bg-neutral-900/60 px-3 py-2">
+              <div className="flex items-center gap-2 justify-end">
+                <div className="inline-flex items-center gap-2 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/90 dark:bg-neutral-900/80 px-3 py-2 backdrop-blur-sm shadow-sm">
                     <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
                     <select
                       value={sort}
@@ -647,7 +642,6 @@ export default function Home() {
                       Clear
                     </button>
                   )}
-                </div>
               </div>
 
               {/* Tags + reading time (compact) */}
@@ -728,25 +722,6 @@ export default function Home() {
                         </button>
                       );
                     })}
-                  </div>
-                </div>
-
-                {/* Mobile sort */}
-                <div className="sm:hidden flex justify-end">
-                  <div className="inline-flex items-center gap-2 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/80 dark:bg-neutral-900/60 px-3 py-2">
-                    <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
-                    <select
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value)}
-                      className="bg-transparent text-sm text-neutral-800 dark:text-neutral-200 focus:outline-none"
-                      aria-label="Sort posts"
-                    >
-                      {SORTS.map((s) => (
-                        <option key={s.key} value={s.key}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                 </div>
 
