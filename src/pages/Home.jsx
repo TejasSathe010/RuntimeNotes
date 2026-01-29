@@ -71,9 +71,9 @@ export default function Home() {
   const rawTags = searchParams.get("tags");
   const initialTags = rawTags
     ? rawTags
-        .split(",")
-        .map((t) => normalizeKey(t))
-        .filter(Boolean)
+      .split(",")
+      .map((t) => normalizeKey(t))
+      .filter(Boolean)
     : [];
 
   const initialRt = searchParams.get("rt") ?? "all";
@@ -160,9 +160,9 @@ export default function Home() {
     const rawT = searchParams.get("tags");
     const t = rawT
       ? rawT
-          .split(",")
-          .map((x) => normalizeKey(x))
-          .filter(Boolean)
+        .split(",")
+        .map((x) => normalizeKey(x))
+        .filter(Boolean)
       : [];
 
     const nextRt = searchParams.get("rt") ?? "all";
@@ -303,12 +303,12 @@ export default function Home() {
   const categoryCounts = useMemo(() => {
     const counts = new Map();
     counts.set("all", normalizedPosts.length);
-    
+
     const presetKeys = CATEGORY_PRESETS.map((c) => c.key);
     for (const key of presetKeys) {
       counts.set(key, 0);
     }
-    
+
     for (const p of normalizedPosts) {
       const k = p.categoryKey || "uncategorized";
       counts.set(k, (counts.get(k) || 0) + 1);
@@ -553,7 +553,7 @@ export default function Home() {
     "dark:bg-neutral-900/50 dark:text-neutral-200 dark:hover:bg-neutral-900";
 
   return (
-    <main className="min-h-[100dvh] bg-gradient-to-b from-surface-light via-white to-surface-light dark:from-surface-dark dark:via-neutral-950 dark:to-surface-dark transition-colors duration-700">
+    <main className="min-h-[100dvh] bg-neutral-50 dark:bg-neutral-950 transition-colors duration-300">
       {/* Toast */}
       <AnimatePresence>{toastMsg ? <Toast key={toastMsg} message={toastMsg} /> : null}</AnimatePresence>
 
@@ -568,28 +568,26 @@ export default function Home() {
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-b from-white/60 via-white/40 to-white/65 dark:from-neutral-950/60 dark:via-neutral-950/28 dark:to-neutral-950/60" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-neutral-50/80 dark:bg-neutral-950/80" />
 
         <motion.div
-          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          initial={reduceMotion ? false : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42, ease: "easeOut" }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-16 sm:pt-20 pb-10 sm:pb-12 text-center"
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-neutral-200/70 dark:border-neutral-800/70 bg-white/75 dark:bg-neutral-900/55 px-3 py-1.5 text-xs text-neutral-600 dark:text-neutral-300 shadow-sm">
-            <Sparkles className="h-4 w-4 text-neutral-500" />
-            Engineering notes, written clean.
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary-50 dark:bg-primary-950/30 border border-primary-100 dark:border-primary-900/30 text-xs font-semibold tracking-wide uppercase text-primary-700 dark:text-primary-300 mb-6">
+            <span className="inline-flex h-2 w-2 rounded-full bg-primary-500"></span>
+            Engineering Notes
           </div>
 
-          <h1 className="mt-4 font-display font-extrabold tracking-tight bg-gradient-to-r from-[#4285F4] via-[#34A853] via-40% to-[#EA4335] bg-clip-text text-transparent text-[clamp(2.6rem,4.8vw,4.15rem)]">
-            RuntimeNotes
+          <h1 className="font-display font-bold tracking-tight text-neutral-900 dark:text-white text-[clamp(2.5rem,5vw,4.5rem)] leading-[1.1]">
+            Runtime<span className="text-primary-600 dark:text-primary-400">Notes</span>
           </h1>
 
-          <p className="mt-5 mx-auto max-w-[62ch] text-[clamp(1.0rem,1.25vw,1.22rem)] leading-[1.75] text-neutral-700/90 dark:text-neutral-300">
-            Deep dives into{" "}
-            <strong className="font-semibold text-neutral-900 dark:text-neutral-50">System Design</strong>,{" "}
-            <strong className="font-semibold text-neutral-900 dark:text-neutral-50">GenAI</strong>, and{" "}
-            <strong className="font-semibold text-neutral-900 dark:text-neutral-50">DSA</strong> — practical insights for builders.
+          <p className="mt-6 mx-auto max-w-[60ch] text-lg sm:text-xl text-neutral-600 dark:text-neutral-400 leading-relaxed">
+            Real-world insights on <strong className="font-semibold text-neutral-900 dark:text-white">System Design</strong>, <strong className="font-semibold text-neutral-900 dark:text-white">GenAI</strong>, and <strong className="font-semibold text-neutral-900 dark:text-white">DSA</strong>.
+            <br className="hidden sm:block" /> Built for engineers, not SEO bots.
           </p>
 
           {/* Search + controls */}
@@ -610,38 +608,38 @@ export default function Home() {
                   catKey={catKey}
                   setCatKey={setCatKey}
                 />
-                </div>
+              </div>
 
-                {/* Sort + clear */}
+              {/* Sort + clear */}
               <div className="flex items-center gap-2 justify-end">
                 <div className="inline-flex items-center gap-2 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white/90 dark:bg-neutral-900/80 px-3 py-2 backdrop-blur-sm shadow-sm">
-                    <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
-                    <select
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value)}
-                      className="bg-transparent text-sm text-neutral-800 dark:text-neutral-200 focus:outline-none"
-                      aria-label="Sort posts"
-                    >
-                      {SORTS.map((s) => (
-                        <option key={s.key} value={s.key}>
-                          {s.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SlidersHorizontal className="h-4 w-4 text-neutral-500" />
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                    className="bg-transparent text-sm text-neutral-800 dark:text-neutral-200 focus:outline-none"
+                    aria-label="Sort posts"
+                  >
+                    {SORTS.map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  {hasAnyActive && (
-                    <button
-                      type="button"
-                      onClick={clearAll}
-                      className="rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
+                {hasAnyActive && (
+                  <button
+                    type="button"
+                    onClick={clearAll}
+                    className="rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
                                  bg-white/80 dark:bg-neutral-900/60 px-3 py-2 text-sm
                                  text-neutral-700 dark:text-neutral-200 hover:border-primary/30 hover:text-primary transition-colors
                                  focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    >
-                      Clear
-                    </button>
-                  )}
+                  >
+                    Clear
+                  </button>
+                )}
               </div>
 
               {/* Tags + reading time (compact) */}
@@ -730,7 +728,7 @@ export default function Home() {
 
                 {/* Subtle “confidence” line (psych UX: reduces uncertainty) */}
                 <p className="mt-1 text-[0.78rem] text-neutral-500/85 dark:text-neutral-400/85">
-                  {loading ? "Indexing…" : "Use filters to narrow quickly — results update instantly."}
+                  {loading ? "Indexing…" : "Filter results instantly."}
                 </p>
               </div>
             </div>
@@ -742,7 +740,7 @@ export default function Home() {
 
             {/* Cmd hint */}
             <p className="mt-1 hidden sm:block text-[0.78rem] text-neutral-500/80 dark:text-neutral-400/80">
-              Tip: press <span className="font-semibold">⌘K</span> for quick filters.
+              Press <span className="font-semibold">⌘K</span> to filter.
             </p>
           </div>
         </motion.div>
@@ -793,11 +791,11 @@ export default function Home() {
                 key={i}
                 className="rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white dark:bg-neutral-900 p-6 shadow-sm"
               >
-                <div className="h-5 w-28 rounded-full bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
-                <div className="mt-4 h-6 w-5/6 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
-                <div className="mt-3 h-4 w-full rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
-                <div className="mt-2 h-4 w-5/6 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
-                <div className="mt-5 h-4 w-24 rounded-lg bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
+                <div className={cn("h-5 w-28 rounded-full bg-neutral-100 dark:bg-neutral-800", !reduceMotion && "animate-pulse")} />
+                <div className={cn("mt-4 h-6 w-5/6 rounded-lg bg-neutral-100 dark:bg-neutral-800", !reduceMotion && "animate-pulse")} />
+                <div className={cn("mt-3 h-4 w-full rounded-lg bg-neutral-100 dark:bg-neutral-800", !reduceMotion && "animate-pulse")} />
+                <div className={cn("mt-2 h-4 w-5/6 rounded-lg bg-neutral-100 dark:bg-neutral-800", !reduceMotion && "animate-pulse")} />
+                <div className={cn("mt-5 h-4 w-24 rounded-lg bg-neutral-100 dark:bg-neutral-800", !reduceMotion && "animate-pulse")} />
               </div>
             ))}
           </div>

@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Search, X, XCircle, Command, Check, Hash, Clock, SlidersHorizontal } from "lucide-react";
-import { cn } from "../../utils/common";
+import { cn, startCaseFromKey } from "../../utils/common";
 import { CATEGORY_PRESETS, READING_FILTERS, SORTS } from "../../utils/constants";
 
 export default function CommandPalette({
@@ -135,17 +135,19 @@ export default function CommandPalette({
           {/* Search inside palette */}
           <div className="px-5 py-4">
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-neutral-400" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-neutral-400/80" />
               <input
                 ref={paletteInputRef}
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search posts…"
-                className="w-full rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
-                           bg-white/85 dark:bg-neutral-900/60 px-11 py-3 text-sm
-                           text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400
-                           focus:outline-none focus:ring-2 focus:ring-primary/35"
+                placeholder="Search articles…"
+                className="w-full h-10 rounded-xl border border-neutral-200/60 dark:border-neutral-800/60
+                           bg-white/50 dark:bg-neutral-900/40 px-10 text-[0.93rem]
+                           text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400/80
+                           focus:outline-none focus:bg-white dark:focus:bg-neutral-900
+                           focus:ring-2 focus:ring-primary/20 focus:border-primary/50
+                           transition-all duration-200 ease-out"
                 aria-label="Search posts"
               />
               {query.trim() && (
@@ -326,7 +328,7 @@ export default function CommandPalette({
             </div>
 
             <p className="mt-3 text-[0.78rem] text-neutral-500/85 dark:text-neutral-400/85">
-              Pro tip: use tags for narrow intent; use length when you want a quick win.
+              Tags for specifics, length for time.
             </p>
           </div>
         </motion.div>

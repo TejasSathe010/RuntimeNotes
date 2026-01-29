@@ -4,51 +4,52 @@ import { cn } from "../../utils/common";
 export default function CategoryFilters({ categories, categoryCounts, catKey, setCatKey }) {
   return (
     <LayoutGroup>
-      <div className="relative flex gap-2 overflow-x-auto no-scrollbar py-1 pr-4">
-        {categories.map((c) => {
-          const active = catKey === c.key;
-          const count = categoryCounts.get(c.key) ?? 0;
+      <div className="relative flex overflow-x-auto no-scrollbar py-2 px-1">
+        <div className="flex gap-2 mx-auto">
+          {categories.map((c) => {
+            const active = catKey === c.key;
+            const count = categoryCounts.get(c.key) ?? 0;
 
-          return (
-            <button
-              key={c.key}
-              onClick={() => setCatKey(c.key)}
-              aria-pressed={active}
-              className={cn(
-                "relative whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                active
-                  ? "text-white dark:text-neutral-900"
-                  : "text-neutral-700 dark:text-neutral-200 hover:text-neutral-900 dark:hover:text-neutral-50",
-                !active &&
-                  "bg-neutral-100/90 hover:bg-neutral-200/70 dark:bg-neutral-900/50 dark:hover:bg-neutral-900"
-              )}
-            >
-              {active && (
-                <motion.span
-                  layoutId="active-cat"
-                  className="absolute inset-0 rounded-full bg-neutral-900 dark:bg-white shadow-sm"
-                  transition={{ type: "spring", stiffness: 520, damping: 36 }}
-                  aria-hidden="true"
-                />
-              )}
+            return (
+              <button
+                key={c.key}
+                onClick={() => setCatKey(c.key)}
+                aria-pressed={active}
+                className={cn(
+                  "relative whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium",
+                  "active:translate-y-px transition-all duration-150",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/40",
+                  active
+                    ? "text-primary-700 dark:text-primary-300"
+                    : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-200"
+                )}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="active-cat"
+                    className="absolute inset-0 rounded-lg bg-primary-50 dark:bg-primary-900/20 ring-1 ring-primary-100 dark:ring-primary-800/50"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    aria-hidden="true"
+                  />
+                )}
 
-              <span className="relative inline-flex items-center gap-2">
-                {c.label}
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-0.5 text-[0.72rem] font-semibold tabular-nums",
-                    active
-                      ? "bg-white/15 text-white dark:bg-neutral-900/15 dark:text-neutral-900"
-                      : "bg-white text-neutral-700 dark:bg-neutral-900 dark:text-neutral-200"
-                  )}
-                >
-                  {count}
+                <span className="relative inline-flex items-center gap-2">
+                  {c.label}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums transition-colors",
+                      active
+                        ? "bg-primary-100 text-primary-700 dark:bg-primary-800 dark:text-primary-200"
+                        : "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400"
+                    )}
+                  >
+                    {count}
+                  </span>
                 </span>
-              </span>
-            </button>
-          );
-        })}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </LayoutGroup>
   );
