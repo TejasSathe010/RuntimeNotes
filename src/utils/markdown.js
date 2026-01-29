@@ -2,7 +2,7 @@
  * Markdown processing utilities
  */
 
-import { extractText, slugifyHeading } from "./common";
+import { slugifyHeading } from "./common";
 
 /**
  * Extract text from MDAST node

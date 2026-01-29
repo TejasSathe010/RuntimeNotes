@@ -1,126 +1,64 @@
-import { useState, isValidElement, cloneElement } from "react";
-import { Sparkles } from "lucide-react";
-import { slugifyHeading, extractText, cn } from "../../utils/common";
-import { parseMeta } from "../../utils/markdown";
-import ReactFlowEmbed from "../ReactFlowEmbed";
-import { Suspense, lazy } from "react";
+import { useState } from "react";
+import { Check, Copy } from "lucide-react";
+import { cn } from "../../utils/common";
 
-const CodePlayground = lazy(() => import("../CodePlayground"));
-
-export function PreBlock({ children, ...props }) {
-  const meta = props["data-meta"] || "";
-  const child = Array.isArray(children) ? children[0] : children;
-
-  if (isValidElement(child)) {
-    return cloneElement(child, { ...child.props, "data-meta": meta });
-  }
-
-  return <pre {...props}>{children}</pre>;
-}
-
-export function CodeBlock({ inline, className, children, node, ...props }) {
-  const match = /language-(\w+)/.exec(className || "");
-  const language = match ? match[1].toLowerCase() : "code";
-
-  const [copied, setCopied] = useState(false);
-  const plainText = extractText(children);
-
-  const isInline = inline ?? (!match && !plainText.includes("\n"));
-  const lang = match?.[1]?.toLowerCase();
-
-  if (!inline && lang === "reactflow") {
-    const jsonText = extractText(children);
-    return <ReactFlowEmbed jsonText={jsonText} />;
-  }
-
-  if (isInline) {
-    return (
-      <code
-        className="px-1.5 py-0.5 rounded-md bg-neutral-100 dark:bg-neutral-800/80
-                   text-[0.92em] font-mono text-neutral-950 dark:text-neutral-100"
-        {...props}
-      >
+export const PreBlock = ({ children, ...props }) => (
+    <pre {...props} className="not-prose my-6 overflow-x-auto rounded-xl border border-neutral-700/50 bg-[#1e1e2e] p-4 text-sm leading-relaxed shadow-lg">
         {children}
-      </code>
-    );
-  }
+    </pre>
+);
 
-  const metaFromProps = props["data-meta"] || "";
-  const metaFromNode = node?.data?.meta || node?.meta || "";
-  const meta = metaFromProps || metaFromNode;
-  const metaInfo = parseMeta(meta);
+export const CodeBlock = ({ inline, className, children, ...props }) => {
+    const [copied, setCopied] = useState(false);
 
-  let markerInfo = { runner: false, template: null, title: null };
-  const firstLine = (plainText.split("\n")[0] || "").trim();
-  if (/^\/\/\s*@runner\b/i.test(firstLine)) {
-    const rest = firstLine.replace(/^\/\/\s*@runner\s*/i, "");
-    markerInfo = parseMeta(`runner ${rest}`);
-  }
+    const match = /language-(\w+)/.exec(className || "");
+    const hasNewlines = String(children).includes("\n");
+    // Heuristic: If explicit inline prop is missing, assume inline if no language class AND no newlines.
+    const isInline = inline ?? (!match && !hasNewlines);
 
-  const isRunnableLang = ["js", "ts", "jsx", "tsx"].includes(language);
-  const shouldRun = isRunnableLang && (metaInfo.runner || markerInfo.runner);
+    if (isInline) {
+        return (
+            <code
+                {...props}
+                className="mx-[0.1em] rounded-[4px] border border-neutral-200/60 bg-neutral-100/80 px-[0.3em] py-[0.1em] font-mono text-[0.85em] font-semibold text-rose-600 dark:border-neutral-700/60 dark:bg-neutral-800/80 dark:text-rose-300 align-baseline"
+            >
+                {children}
+            </code>
+        );
+    }
 
-  if (shouldRun) {
-    const template = metaInfo.template || markerInfo.template || null;
-    const title = metaInfo.title || markerInfo.title || "Playground";
+    // Block code logic
+    const lang = match ? match[1] : "";
+    const textContent = String(children).replace(/\n$/, "");
 
-    const runnableCode = markerInfo.runner
-      ? plainText.split("\n").slice(1).join("\n")
-      : plainText;
+    const onCopy = () => {
+        navigator.clipboard.writeText(textContent);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
-      <Suspense
-        fallback={
-          <div className="my-6 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-white dark:bg-neutral-900 p-4 text-sm text-neutral-600 dark:text-neutral-300">
-            Loading playground…
-          </div>
-        }
-      >
-        <CodePlayground
-          code={runnableCode}
-          language={language}
-          template={template}
-          title={title}
-        />
-      </Suspense>
-    );
-  }
-
-  const headerLang = match ? match[1].toUpperCase() : "CODE";
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(plainText);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // Clipboard write failed, ignore silently
-    }
-  };
-
-  return (
-    <div className="my-6 overflow-hidden rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70 bg-[#0d1117] shadow-[0_14px_50px_rgba(0,0,0,0.18)]">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#161b22] border-b border-neutral-800 text-[0.72rem] text-neutral-400">
-        <div className="flex gap-1.5 items-center">
-          <span className="w-3 h-3 rounded-full bg-red-500/90" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500/90" />
-          <span className="w-3 h-3 rounded-full bg-green-500/90" />
-          <span className="ml-3 uppercase tracking-[0.16em] text-neutral-300">{headerLang}</span>
+        <div className="group relative my-4">
+            {lang && (
+                <span className="absolute right-3 top-3 select-none text-[10px] uppercase tracking-wider text-neutral-500 opacity-0 transition-opacity group-hover:opacity-100">
+                    {lang}
+                </span>
+            )}
+            <button
+                onClick={onCopy}
+                type="button"
+                className={cn(
+                    "absolute right-2 top-2 z-10 hidden rounded-md p-1.5 transition-all focus:outline-none md:block",
+                    "bg-white/10 text-neutral-400 hover:bg-white/20 hover:text-white",
+                    "opacity-0 group-hover:opacity-100"
+                )}
+                aria-label="Copy code"
+            >
+                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+            <code {...props} className={cn(className, "block min-w-full bg-transparent p-0 font-mono text-[13px] text-[#cdd6f4]")}>
+                {children}
+            </code>
         </div>
-        <button
-          onClick={handleCopy}
-          type="button"
-          className="px-2.5 py-1 rounded-lg bg-neutral-800/70 hover:bg-neutral-700 text-neutral-100 transition-colors"
-        >
-          {copied ? "Copied ✓" : "Copy"}
-        </button>
-      </div>
-
-      <pre className="p-4 sm:p-5 text-[0.9rem] sm:text-[0.95rem] text-zinc-50 leading-[1.75] overflow-x-auto">
-        <code className={className} {...props}>
-          {children}
-        </code>
-      </pre>
-    </div>
-  );
-}
+    );
+};

@@ -5,6 +5,7 @@ import { PreBlock, CodeBlock } from "../components/post/MarkdownComponents";
 export function getMarkdownComponents() {
   return {
     pre: PreBlock,
+    code: CodeBlock,
 
     h1: ({ children, ...props }) => {
       const id = props.id || slugifyHeading(extractText(children));
@@ -125,17 +126,56 @@ export function getMarkdownComponents() {
       </strong>
     ),
 
-    blockquote: ({ children, ...props }) => (
-      <blockquote
-        {...props}
-        className="my-7 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
-                   bg-white/85 dark:bg-neutral-900/60 px-5 py-4 shadow-sm"
-      >
-        <div className="border-l-2 border-primary/70 pl-4 leading-[1.85] text-neutral-900 dark:text-neutral-50 space-y-2">
-          {children}
-        </div>
-      </blockquote>
-    ),
+    blockquote: ({ children, ...props }) => {
+      // Check if this acts as a callout/admonition
+      const text = extractText(children).trim();
+      const match = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i.exec(text);
+
+      if (match) {
+        const type = match[1].toUpperCase();
+        // Styles map
+        const styles = {
+          NOTE: "bg-blue-50 dark:bg-blue-500/10 border-blue-500 text-blue-900 dark:text-blue-200",
+          TIP: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-500 text-emerald-900 dark:text-emerald-200",
+          IMPORTANT: "bg-violet-50 dark:bg-violet-500/10 border-violet-500 text-violet-900 dark:text-violet-200",
+          WARNING: "bg-amber-50 dark:bg-amber-500/10 border-amber-500 text-amber-900 dark:text-amber-200",
+          CAUTION: "bg-red-50 dark:bg-red-500/10 border-red-500 text-red-900 dark:text-red-200",
+        };
+        const icons = {
+          NOTE: "ℹ️",
+          TIP: "💡",
+          IMPORTANT: "✨",
+          WARNING: "⚠️",
+          CAUTION: "🚨",
+        };
+
+        const accentClass = styles[type] || styles.NOTE;
+        const icon = icons[type] || icons.NOTE;
+
+        return (
+          <div className={cn("my-6 rounded-xl border-l-4 px-4 py-3", accentClass)}>
+            <div className="flex items-center gap-2 font-semibold text-sm opacity-90 mb-1 capitalize">
+              <span>{icon}</span> {type.toLowerCase()}
+            </div>
+            <div className="[&>p]:mt-0 [&>p]:mb-1 text-[0.95rem] leading-relaxed opacity-90">
+              {children}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <blockquote
+          {...props}
+          className="my-7 rounded-2xl border border-neutral-200/70 dark:border-neutral-800/70
+                     bg-white/85 dark:bg-neutral-900/60 px-5 py-4 shadow-sm"
+        >
+          <div className="border-l-2 border-primary/70 pl-4 leading-[1.85] text-neutral-900 dark:text-neutral-50 space-y-2">
+            {children}
+          </div>
+        </blockquote>
+      );
+    },
 
     ul: ({ children, ...props }) => (
       <ul
@@ -234,7 +274,5 @@ export function getMarkdownComponents() {
         className="my-12 border-0 h-px bg-gradient-to-r from-transparent via-neutral-300/80 dark:via-neutral-700 to-transparent"
       />
     ),
-
-    code: CodeBlock,
   };
 }

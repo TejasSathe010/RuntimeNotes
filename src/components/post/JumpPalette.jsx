@@ -66,8 +66,8 @@ export default function JumpPalette({
                 value={jumpQuery}
                 onChange={(e) => setJumpQuery(e.target.value)}
                 placeholder="Jump to section…"
-                className="w-full bg-transparent text-sm text-neutral-900 dark:text-neutral-50 placeholder:text-neutral-400
-                           focus:outline-none"
+                className="w-full h-10 bg-transparent text-[0.93rem] text-neutral-900 dark:text-neutral-50 
+                           placeholder:text-neutral-400/80 focus:outline-none"
               />
               <button
                 type="button"

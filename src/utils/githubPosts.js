@@ -35,7 +35,7 @@ function getCachedPosts() {
   try {
     const cached = sessionStorage.getItem(CACHE_KEY);
     const timestamp = sessionStorage.getItem(CACHE_TIMESTAMP_KEY);
-    
+
     if (!cached || !timestamp) return null;
 
     const age = Date.now() - parseInt(timestamp, 10);
@@ -70,7 +70,7 @@ function cachePosts(posts) {
  */
 async function fetchPostFromGitHub(slug, category) {
   const url = buildGitHubUrl(slug, category);
-  
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -149,7 +149,7 @@ export async function getPostsFromGitHub() {
     if (manifest?.categories && Array.isArray(manifest.categories)) {
       categories = manifest.categories.map((cat) => cat.name || cat.path);
     }
-  } catch (err) {
+  } catch {
     // Manifest not available, use default categories
     console.debug("Manifest not available, using default categories");
   }
@@ -159,7 +159,7 @@ export async function getPostsFromGitHub() {
   for (const category of categories) {
     try {
       const slugs = await listPostsInCategory(category);
-      
+
       for (const slug of slugs) {
         try {
           const post = await fetchPostFromGitHub(slug, category);
@@ -199,7 +199,7 @@ export async function getPostsFromGitHub() {
 export async function getPostBySlugFromGitHub(slug) {
   // Try common categories
   const categories = ["SystemDesign", "DSA", "GenAI"];
-  
+
   for (const category of categories) {
     try {
       const post = await fetchPostFromGitHub(slug, category);
@@ -207,7 +207,7 @@ export async function getPostBySlugFromGitHub(slug) {
         ...post,
         category: category.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase(),
       };
-    } catch (err) {
+    } catch {
       // Try next category
       continue;
     }
@@ -221,7 +221,7 @@ export async function getPostBySlugFromGitHub(slug) {
  */
 export function clearGitHubCache() {
   if (typeof window === "undefined") return;
-  
+
   sessionStorage.removeItem(CACHE_KEY);
   sessionStorage.removeItem(CACHE_TIMESTAMP_KEY);
 }

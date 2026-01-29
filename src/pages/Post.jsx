@@ -7,7 +7,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import "highlight.js/styles/github-dark-dimmed.css";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { cn, formatCategory, safeDate } from "../utils/common";
+import { cn } from "../utils/common";
 import { getLocalArray, setLocalArray } from "../utils/localStorage";
 import { STORAGE_KEYS } from "../utils/constants";
 import { remarkHeadingIds, remarkCodeMetaToDataAttrs, extractTakeaways } from "../utils/markdown";
@@ -36,7 +36,6 @@ export default function Post() {
   const reduceMotion = useReducedMotion();
 
   const articleRef = useRef(null);
-  const jumpInputRef = useRef(null);
 
   const [post, setPost] = useState(null);
   const [relatedPosts, setRelatedPosts] = useState([]);
@@ -266,7 +265,7 @@ export default function Post() {
     return Math.max(1, Math.ceil(words / 230));
   }, [post?.content]);
 
-  const category = useMemo(() => formatCategory(post?.category), [post?.category]);
+  // Unused: category
   const takeaways = useMemo(() => extractTakeaways(post?.content), [post?.content]);
 
   const copyLink = async () => {
@@ -275,7 +274,7 @@ export default function Post() {
       setCopiedLink(true);
       pushToast("Link copied");
       window.setTimeout(() => setCopiedLink(false), 1100);
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   const copySectionLink = async (id) => {
@@ -285,7 +284,7 @@ export default function Post() {
       setSectionCopied(id);
       pushToast("Section link copied");
       window.setTimeout(() => setSectionCopied(""), 1000);
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   const scrollToHeading = (id) => {
@@ -324,7 +323,7 @@ export default function Post() {
   const printPage = () => {
     try {
       window.print();
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   const copyQuote = async () => {
@@ -339,13 +338,13 @@ export default function Post() {
       window.setTimeout(() => setQuoteCopied(false), 900);
       setQuote(null);
       window.getSelection?.()?.removeAllRanges?.();
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   if (!post) {
     return (
-      <main className="min-h-[70dvh] flex items-center justify-center text-neutral-500 dark:text-neutral-400 animate-pulse">
-        Loading article…
+      <main className="min-h-[70dvh] flex items-center justify-center text-neutral-500 dark:text-neutral-400">
+        <span className="text-sm">Loading article…</span>
       </main>
     );
   }
@@ -356,13 +355,14 @@ export default function Post() {
       <AnimatePresence>
         {toast?.msg && (
           <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.98 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[95]
-                       rounded-full border border-neutral-200/70 dark:border-neutral-800/70
-                       bg-white/90 dark:bg-neutral-900/80 backdrop-blur px-4 py-2 shadow-lg
-                       text-xs font-medium text-neutral-800 dark:text-neutral-100"
+                       rounded-lg border border-neutral-200 dark:border-neutral-800
+                       bg-white dark:bg-neutral-900 px-4 py-2 shadow-sm
+                       text-sm font-medium text-neutral-700 dark:text-neutral-200"
           >
             {toast.msg}
           </motion.div>
@@ -374,14 +374,17 @@ export default function Post() {
           <motion.button
             onClick={() => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
             className="fixed bottom-6 right-5 sm:bottom-7 sm:right-7 z-[80]
-                       bg-primary text-white p-2.5 rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all"
+                       h-10 w-10 flex items-center justify-center
+                       bg-neutral-900 dark:bg-white text-white dark:text-neutral-900
+                       rounded-full shadow-sm hover:shadow active:translate-y-px transition-all duration-150"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
             type="button"
             aria-label="Back to top"
           >
-            ↑
+            <span className="text-sm font-bold">↑</span>
           </motion.button>
         )}
       </AnimatePresence>
@@ -405,25 +408,28 @@ export default function Post() {
         onPrint={printPage}
       />
 
-      <section className="px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
-        <div className="mx-auto w-full max-w-6xl grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-10 items-start">
+      <section className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="mx-auto w-full max-w-6xl grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:gap-12 items-start">
           <div
             className={cn(
-              "relative bg-white dark:bg-neutral-900/95 border border-neutral-200/70 dark:border-neutral-800/80 rounded-2xl",
-              "shadow-[0_14px_40px_rgba(15,23,42,0.07)] dark:shadow-[0_14px_40px_rgba(0,0,0,0.42)]",
-              "px-5 sm:px-7 md:px-8 py-7 sm:py-8"
+              "relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl",
+              "shadow-sm",
+              "px-6 sm:px-8 md:px-10 py-8 sm:py-10"
             )}
           >
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-primary/7 via-transparent to-transparent rounded-t-2xl" />
+            {/* Subtle top accent */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/20 to-transparent" />
 
             <article
               ref={articleRef}
               className={cn(
-                "relative z-10 mx-auto max-w-[72ch]",
-                "font-sans antialiased",
-                "text-[1.02rem] sm:text-[1.05rem] md:text-[1.06rem]",
-                "leading-[1.9] tracking-[0.002em]",
-                "selection:bg-primary/20 selection:text-neutral-950"
+                "relative z-10 mx-auto max-w-[65ch]",
+                "prose prose-neutral dark:prose-invert",
+                "prose-headings:font-display prose-headings:tracking-tight",
+                "prose-p:text-neutral-600 dark:prose-p:text-neutral-400",
+                "prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline",
+                "prose-code:text-sm prose-code:font-medium",
+                "selection:bg-primary-100 dark:selection:bg-primary-900/40"
               )}
             >
               <ReactMarkdown
@@ -437,9 +443,9 @@ export default function Post() {
 
             <PostAuthor />
             <RelatedPosts posts={relatedPosts} />
-                </div>
+          </div>
 
-          <div className="hidden lg:block sticky top-24 self-start space-y-4">
+          <div className="hidden lg:block sticky top-24 self-start space-y-6">
             <TocSidebar
               tocItems={tocItems}
               activeId={activeId}
@@ -455,7 +461,7 @@ export default function Post() {
 
             <TakeawaysCard takeaways={takeaways} />
             <UtilitiesCard post={post} />
-                      </div>
+          </div>
         </div>
       </section>
 
