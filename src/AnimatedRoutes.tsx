@@ -25,8 +25,8 @@ export function AnimatedRoutes() {
         animate="animate"
         exit="exit"
         transition={{
-          duration: reduceMotion ? 0 : 0.28,
-          ease: "easeOut",
+          duration: reduceMotion ? 0 : 0.35,
+          ease: [0.22, 1, 0.36, 1], // "Swift" easing (approximate)
         }}
         // Keeps your existing spacing, but makes layout more “app-like”
         className={[

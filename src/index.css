@@ -1,81 +1,124 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
 
-html {
-  scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.6) transparent;
-}
+@layer base {
 
-body {
-  -ms-overflow-style: none;
-}
+  /* ========== GOD-LEVEL TOKEN SYSTEM ========== */
+  :root {
+    /* Colors */
+    --color-bg: 248 250 252;
+    /* slate-50 tinted */
+    --color-surface: 255 255 255;
+    --color-surface-2: 241 245 249;
+    /* slate-100 */
+    --color-border: 226 232 240;
+    /* slate-200 */
+    --color-fg: 15 23 42;
+    /* slate-900 */
+    --color-muted: 100 116 139;
+    /* slate-500 */
+    --color-brand: 67 56 202;
+    /* indigo-700 */
+    --color-brand-light: 99 102 241;
+    /* indigo-500 */
+    --color-accent: 20 184 166;
+    /* teal-500 */
 
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* Spacing (strict scale) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-12: 48px;
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
+    /* Radii */
+    --radius-control: 12px;
+    --radius-card: 16px;
+    --radius-pill: 999px;
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+    /* Shadows (2 levels only) */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
 
-::-webkit-scrollbar-thumb {
-  border-radius: 9999px;
-  background: rgba(148, 163, 184, 0.5);
-}
-
-canvas {
-  image-rendering: optimizeSpeed;
-  transition: opacity 1s ease;
-}
-
-html.dark canvas {
-  mix-blend-mode: lighten;
-  filter: blur(30px) brightness(1.2) contrast(1.1);
-}
-
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
+    /* Motion */
+    --duration-fast: 150ms;
+    --duration-base: 200ms;
+    --duration-slow: 300ms;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   }
-  50% {
-    background-position: 100% 50%;
+
+  .dark {
+    --color-bg: 11 16 27;
+    /* deep blue-black */
+    --color-surface: 22 27 38;
+    --color-surface-2: 30 41 59;
+    /* slate-800 */
+    --color-border: 51 65 85;
+    /* slate-700 */
+    --color-fg: 248 250 252;
+    /* slate-50 */
+    --color-muted: 148 163 184;
+    /* slate-400 */
+    --color-brand: 129 140 248;
+    /* indigo-400 */
+    --color-brand-light: 165 180 252;
+    /* indigo-300 */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.3), 0 1px 2px -1px rgb(0 0 0 / 0.2);
   }
-  100% {
-    background-position: 0% 50%;
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-surface-light-alt text-md text-neutral-900 antialiased dark:bg-surface-dark dark:text-neutral-50;
+    overflow-y: scroll;
+  }
+
+  /* Custom Selection Color */
+  ::selection {
+    @apply bg-primary-200 text-primary-900 dark:bg-primary-900/60 dark:text-primary-100;
   }
 }
 
-.prose p {
-  margin-top: 1.4em;
-  margin-bottom: 1.4em;
-  text-indent: 1.75em;
-  text-align: justify;
-}
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
-.prose p:first-of-type {
-  text-indent: 0;
-}
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 
-.prose p:first-of-type::first-letter {
-  all: unset;
-}
 
-.prose ul li::marker {
-  color: #1a73e8;
-}
 
-.prose pre code {
-  font-size: 0.95em;
-  letter-spacing: -0.015em;
-}
+  /* Custom Scrollbar (Subtle & Modern) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-.prose hr {
-  border: none;
-  height: 1px;
-  background: linear-gradient(to right, transparent, #ccc, transparent);
-  margin: 3em 0;
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    border-radius: 99px;
+    @apply bg-neutral-300 dark:bg-neutral-700/50 transition-colors hover:bg-neutral-400 dark:hover:bg-neutral-600;
+  }
+
+
+
+  /* React Flow / Canvas overrides */
+  .react-flow__attribution {
+    display: none;
+  }
 }
