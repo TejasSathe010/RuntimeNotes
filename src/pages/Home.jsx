@@ -13,14 +13,13 @@ import {
   LayoutGroup,
 } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
-import {
-  SlidersHorizontal,
-  Sparkles,
-  Hash,
-  Clock,
-  Filter,
-} from "lucide-react";
-import Fuse from "fuse.js";
+// Core icons inlined to remove lucide-react from critical Home bundle
+const SlidersHorizontal = (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="21" y1="4" x2="14" y2="4" /><line x1="10" y1="4" x2="3" y2="4" /><line x1="21" y1="12" x2="12" y2="12" /><line x1="8" y1="12" x2="3" y2="12" /><line x1="21" y1="20" x2="16" y2="20" /><line x1="12" y1="20" x2="3" y2="20" /><line x1="14" y1="2" x2="14" y2="6" /><line x1="8" y1="10" x2="8" y2="14" /><line x1="16" y1="18" x2="16" y2="22" /></svg>;
+const Sparkles = (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /><path d="M5 3v4" /><path d="M19 17v4" /><path d="M3 5h4" /><path d="M17 19h4" /></svg>;
+const Hash = (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></svg>;
+const Clock = (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
+const Filter = (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
+// Fuse is now loaded dynamically below to save on initial JS size
 import { getPosts } from "../utils/posts";
 import ArchitecturalMesh from "../components/ArchitecturalMesh";
 import ParticleField from "../components/ParticleField";
@@ -47,10 +46,11 @@ import SearchBar from "../components/home/SearchBar";
 import FilterBadges from "../components/home/FilterBadges";
 import CategoryFilters from "../components/home/CategoryFilters";
 import PostGrid from "../components/home/PostGrid";
-import CommandPalette from "../components/home/CommandPalette";
 import FeaturedPost from "../components/home/FeaturedPost";
 import RecentSavedPosts from "../components/home/RecentSavedPosts";
 import { useToast } from "../hooks/useToast";
+import { lazy, Suspense } from "react";
+const CommandPalette = lazy(() => import("../components/home/CommandPalette"));
 
 export default function Home() {
   const reduceMotion = useReducedMotion();
@@ -95,6 +95,7 @@ export default function Home() {
 
   const [savedSlugs, setSavedSlugs] = useState(() => getLocalArray(STORAGE_KEYS.SAVED));
   const [recentSlugs, setRecentSlugs] = useState(() => getLocalArray(STORAGE_KEYS.RECENTS));
+  const [fuseInstance, setFuseInstance] = useState(null);
 
   const [toastMsg, showToast] = useToast();
 
@@ -342,28 +343,61 @@ export default function Home() {
     }));
   }, [tagCounts]);
 
-  /** ------------------ Fuse: include matches for highlighting ------------------ */
-  const fuse = useMemo(() => {
-    return new Fuse(normalizedPosts, {
-      includeMatches: true,
-      includeScore: true,
-      keys: [
-        { name: "title", weight: 0.56 },
-        { name: "summary", weight: 0.28 },
-        { name: "categoryLabel", weight: 0.10 },
-        { name: "__tagLabels", weight: 0.06 },
-      ],
-      threshold: 0.32,
-      ignoreLocation: true,
-      minMatchCharLength: 2,
+  /** ------------------ Fuse: loaded dynamically ------------------ */
+  useEffect(() => {
+    let alive = true;
+    if (normalizedPosts.length === 0) return;
+
+    import("fuse.js").then((res) => {
+      if (!alive) return;
+      const Fuse = res.default;
+      setFuseInstance(
+        new Fuse(normalizedPosts, {
+          includeMatches: true,
+          includeScore: true,
+          keys: [
+            { name: "title", weight: 0.56 },
+            { name: "summary", weight: 0.28 },
+            { name: "categoryLabel", weight: 0.10 },
+            { name: "__tagLabels", weight: 0.06 },
+          ],
+          threshold: 0.32,
+          ignoreLocation: true,
+          minMatchCharLength: 2,
+        })
+      );
     });
+
+    return () => {
+      alive = false;
+    };
   }, [normalizedPosts]);
+
+  const results = useMemo(() => {
+    if (!deferredQuery.trim()) return normalizedPosts;
+    if (!fuseInstance) return normalizedPosts;
+
+    const res = fuseInstance.search(deferredQuery);
+    const items = res.map((r) => {
+      const m = r.matches || [];
+      const titleMatch = m.find((x) => x.key === "title")?.indices || [];
+      const summaryMatch = m.find((x) => x.key === "summary")?.indices || [];
+      return {
+        ...r.item,
+        __match: {
+          title: titleMatch,
+          summary: summaryMatch,
+        },
+      };
+    });
+    return items;
+  }, [deferredQuery, fuseInstance, normalizedPosts]);
 
   /** ------------------ Filtering + highlighting ------------------ */
   const filtered = useMemo(() => {
     const q = deferredQuery.trim();
 
-    let list = normalizedPosts;
+    let list = q ? results : normalizedPosts;
 
     if (catKey !== "all") {
       list = list.filter((p) => (p.categoryKey || "uncategorized") === catKey);
@@ -381,28 +415,13 @@ export default function Home() {
     }
 
     if (q) {
-      const results = fuse.search(q);
-      const items = results.map((r) => {
-        const m = r.matches || [];
-        const titleMatch = m.find((x) => x.key === "title")?.indices || [];
-        const summaryMatch = m.find((x) => x.key === "summary")?.indices || [];
-        return {
-          ...r.item,
-          __match: {
-            title: titleMatch,
-            summary: summaryMatch,
-          },
-        };
-      });
-
-      if (sort === "rel") return items;
-      list = items;
+      if (sort === "rel") return results;
+      list = results;
     }
 
-    if (sort === "rel" && q) return list;
     const dir = sort === "old" ? 1 : -1;
     return [...list].sort((a, b) => (a.__dateMs - b.__dateMs) * dir);
-  }, [normalizedPosts, catKey, tagKeys, rt, deferredQuery, fuse, sort]);
+  }, [normalizedPosts, catKey, tagKeys, rt, results, deferredQuery, sort]);
 
   const featured = useMemo(() => {
     return normalizedPosts?.find((p) => p.featured) ?? normalizedPosts?.[0] ?? null;
@@ -747,26 +766,28 @@ export default function Home() {
       </section>
 
       {/* Command Palette */}
-      <CommandPalette
-        open={paletteOpen}
-        query={query}
-        setQuery={setQuery}
-        catKey={catKey}
-        setCatKey={setCatKey}
-        sort={sort}
-        setSort={setSort}
-        tagKeys={tagKeys}
-        toggleTag={toggleTag}
-        rt={rt}
-        setRt={setRt}
-        categories={categories}
-        categoryCounts={categoryCounts}
-        tagCounts={tagCounts}
-        hasAnyActive={hasAnyActive}
-        metaText={metaText}
-        onClose={closePalette}
-        onClearAll={clearAll}
-      />
+      <Suspense fallback={null}>
+        <CommandPalette
+          open={paletteOpen}
+          query={query}
+          setQuery={setQuery}
+          catKey={catKey}
+          setCatKey={setCatKey}
+          sort={sort}
+          setSort={setSort}
+          tagKeys={tagKeys}
+          toggleTag={toggleTag}
+          rt={rt}
+          setRt={setRt}
+          categories={categories}
+          categoryCounts={categoryCounts}
+          tagCounts={tagCounts}
+          hasAnyActive={hasAnyActive}
+          metaText={metaText}
+          onClose={closePalette}
+          onClearAll={clearAll}
+        />
+      </Suspense>
 
       {/* Recent/Saved Posts */}
       {!loading && (recentPosts.length > 0 || savedPosts.length > 0) && (

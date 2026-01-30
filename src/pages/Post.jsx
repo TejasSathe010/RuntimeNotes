@@ -1,21 +1,29 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { getPostBySlug, getPosts } from "../utils/posts";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
-import rehypeRaw from "rehype-raw";
-import "highlight.js/styles/github-dark-dimmed.css";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { cn } from "../utils/common";
 import { getLocalArray, setLocalArray } from "../utils/localStorage";
 import { STORAGE_KEYS } from "../utils/constants";
-import { remarkHeadingIds, remarkCodeMetaToDataAttrs, extractTakeaways } from "../utils/markdown";
-import { getMarkdownComponents } from "../utils/markdownComponents";
+import { extractTakeaways } from "../utils/markdown";
+
+const MarkdownRenderer = lazy(() => import("../components/post/MarkdownRenderer"));
+const JumpPalette = lazy(() => import("../components/post/JumpPalette"));
+
+const ContentSkeleton = () => (
+  <div className="space-y-4 animate-pulse">
+    <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-3/4" />
+    <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded" />
+    <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-5/6" />
+    <div className="pt-8 h-8 bg-neutral-100 dark:bg-neutral-800 rounded w-1/4" />
+    <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded" />
+    <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded w-4/6" />
+  </div>
+);
+
 import PostHeader from "../components/post/PostHeader";
 import TocSidebar from "../components/post/TocSidebar";
 import MobileToc from "../components/post/MobileToc";
-import JumpPalette from "../components/post/JumpPalette";
 import PostAuthor from "../components/post/PostAuthor";
 import RelatedPosts from "../components/post/RelatedPosts";
 import TakeawaysCard from "../components/post/TakeawaysCard";
@@ -53,8 +61,6 @@ export default function Post() {
   const [quote, setQuote] = useState(null);
   const [quoteCopied, setQuoteCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-
-  const markdownComponents = useMemo(() => getMarkdownComponents(), []);
 
   const pushToast = (msg) => {
     setToast({ msg });
@@ -432,13 +438,9 @@ export default function Post() {
                 "selection:bg-primary-100 dark:selection:bg-primary-900/40"
               )}
             >
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkHeadingIds, remarkCodeMetaToDataAttrs]}
-                rehypePlugins={[rehypeRaw, rehypeHighlight]}
-                components={markdownComponents}
-              >
-                {post.content}
-              </ReactMarkdown>
+              <Suspense fallback={<ContentSkeleton />}>
+                <MarkdownRenderer content={post.content} />
+              </Suspense>
             </article>
 
             <PostAuthor />
@@ -482,15 +484,17 @@ export default function Post() {
         onScrollToTop={() => window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" })}
       />
 
-      <JumpPalette
-        open={jumpOpen}
-        tocItems={tocItems}
-        showSubheads={showSubheads}
-        saved={saved}
-        onClose={() => setJumpOpen(false)}
-        onJump={scrollToHeading}
-        onToggleSaved={toggleSaved}
-      />
+      <Suspense fallback={null}>
+        <JumpPalette
+          open={jumpOpen}
+          tocItems={tocItems}
+          showSubheads={showSubheads}
+          saved={saved}
+          onClose={() => setJumpOpen(false)}
+          onJump={scrollToHeading}
+          onToggleSaved={toggleSaved}
+        />
+      </Suspense>
 
       <div className="h-10" />
     </main>
