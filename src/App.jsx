@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import { RouteEffects } from "./RouteEffects";
 import { AnimatedRoutes } from "./AnimatedRoutes";
 import { Footer } from "./Footer";
+import PerfPill from "./components/perf/PerfPill";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         </div>
 
         <Footer />
+        <PerfPill />
       </div>
     </Router>
   );
